@@ -40,10 +40,10 @@ import org.eclipse.imp.pdb.facts.visitors.VisitorException;
 /**
  * This class implements the JSon readable syntax for {@link IValue}'s. See also
  * {@link JSonReader}
+ * 
  * @author bertl
  * 
-**/
-	
+ **/
 
 public class JSonWriter implements IValueTextWriter {
 	public void write(IValue value, java.io.Writer stream) throws IOException {
@@ -60,7 +60,6 @@ public class JSonWriter implements IValueTextWriter {
 		write(value, stream);
 	}
 
-	
 	private static class Writer implements IValueVisitor<IValue> {
 		private java.io.Writer stream;
 
@@ -108,10 +107,9 @@ public class JSonWriter implements IValueTextWriter {
 		public IValue visitRational(IRational o) throws VisitorException {
 			return null;
 		}
-
-		public IValue visitList(IList o) throws VisitorException {
+		
+		private void visitSequence(Iterator<IValue> listIterator) throws VisitorException {
 			append('[');
-			Iterator<IValue> listIterator = o.iterator();
 			if (listIterator.hasNext()) {
 				listIterator.next().accept(this);
 				while (listIterator.hasNext()) {
@@ -120,6 +118,30 @@ public class JSonWriter implements IValueTextWriter {
 				}
 			}
 			append(']');
+			
+		}
+
+		/* [expr,...] */
+		public IValue visitList(IList o) throws VisitorException {
+			visitSequence(o.iterator());
+			return o;
+		}
+		
+		/* [expr,...] */
+		public IValue visitSet(ISet o) throws VisitorException {
+			visitSequence(o.iterator());
+			return o;
+		}
+		
+		/* [expr,...] */
+		public IValue visitTuple(ITuple o) throws VisitorException {
+			visitSequence(o.iterator());
+			return o;
+		}
+		
+		/* [expr,...] */
+		public IValue visitRelation(IRelation o) throws VisitorException {
+			visitSequence(o.iterator());
 			return o;
 		}
 
@@ -178,10 +200,12 @@ public class JSonWriter implements IValueTextWriter {
 		 * 
 		 * @see
 		 * org.eclipse.imp.pdb.facts.visitors.IValueVisitor#visitNode(org.eclipse
-		 * .imp.pdb.facts.INode) {f:{args:[],anno:[]}}
+		 * .imp.pdb.facts.INode) {f:{args:[arg0,...],anno:[{name0:val0,...}]}}
 		 */
 		public IValue visitNode(INode o) throws VisitorException {
 			Iterator<IValue> nodeIterator = o.iterator();
+			Map<String, IValue> annos = o.getAnnotations();
+			Iterator<String> annoIterator = annos.keySet().iterator();
 			append('{');
 			append('\"');
 			append(o.getName().replaceAll("\"", "\\\\\"")
@@ -201,37 +225,31 @@ public class JSonWriter implements IValueTextWriter {
 			}
 			append(']');
 			append('}');
+			if (annoIterator.hasNext()) {
+				append("{annos:");
+				append('[');
+				append('{');
+				String key = annoIterator.next();
+				append(':');
+				annos.get(key).accept(this);
+				while (annoIterator.hasNext()) {
+					append(',');
+					key = annoIterator.next();
+					append(':');
+					annos.get(key).accept(this);
+				}
+				append('}');
+				append(']');
+				append('}');
+			}
 			append('}');
 			return o;
 		}
 
-		public IValue visitRelation(IRelation o) throws VisitorException {
-			append('[');
-			Iterator<IValue> listIterator = o.iterator();
-			if (listIterator.hasNext()) {
-				listIterator.next().accept(this);
-				while (listIterator.hasNext()) {
-					append(',');
-					listIterator.next().accept(this);
-				}
-			}
-			append(']');
-			return o;
-		}
+		
+		
 
-		public IValue visitSet(ISet o) throws VisitorException {
-			append('[');
-			Iterator<IValue> listIterator = o.iterator();
-			if (listIterator.hasNext()) {
-				listIterator.next().accept(this);
-				while (listIterator.hasNext()) {
-					append(',');
-					listIterator.next().accept(this);
-				}
-			}
-			append(']');
-			return o;
-		}
+		
 
 		public IValue visitSourceLocation(ISourceLocation o)
 				throws VisitorException {
@@ -247,19 +265,7 @@ public class JSonWriter implements IValueTextWriter {
 			return o;
 		}
 
-		public IValue visitTuple(ITuple o) throws VisitorException {
-			append('[');
-			Iterator<IValue> listIterator = o.iterator();
-			if (listIterator.hasNext()) {
-				listIterator.next().accept(this);
-				while (listIterator.hasNext()) {
-					append(',');
-					listIterator.next().accept(this);
-				}
-			}
-			append(']');
-			return o;			
-		}
+		
 
 		public IValue visitExternal(IExternalValue externalValue) {
 			// ignore external values

@@ -20,12 +20,16 @@ import java.util.ListIterator;
 import java.util.Set;
 
 import org.eclipse.imp.pdb.facts.IConstructor;
+import org.eclipse.imp.pdb.facts.IList;
 import org.eclipse.imp.pdb.facts.IListWriter;
 import org.eclipse.imp.pdb.facts.IMapWriter;
+import org.eclipse.imp.pdb.facts.INode;
 import org.eclipse.imp.pdb.facts.ISetWriter;
 import org.eclipse.imp.pdb.facts.ITuple;
 import org.eclipse.imp.pdb.facts.IValue;
+import org.eclipse.imp.pdb.facts.IString;
 import org.eclipse.imp.pdb.facts.IValueFactory;
+import org.eclipse.imp.pdb.facts.IWriter;
 import org.eclipse.imp.pdb.facts.exceptions.FactParseError;
 import org.eclipse.imp.pdb.facts.exceptions.IllegalOperationException;
 import org.eclipse.imp.pdb.facts.exceptions.UndeclaredAbstractDataTypeException;
@@ -77,14 +81,17 @@ public class JSonReader extends AbstractBinaryReader {
 			throw new FactParseError("premature EOF encountered.", start);
 		case '[':
 		case '{':
-			result = parseList(reader, expected);
+			if (expected.isTupleType()) {
+				result = parseTuple(reader, expected);
+			} else
+				result = parseList(reader, expected);
 			break;
 		case '"':
 			System.err.println("Parse:" + expected);
 			if (expected.isTupleType() /* || expected.isMapType() */)
-				result = parseTuple(reader, expected);
+				result = parseMapEntry(reader, expected);
 			else
-			result = parseString(reader, expected);
+				result = parseString(reader, expected);
 			break;
 		case '-':
 		case '0':
@@ -193,10 +200,38 @@ public class JSonReader extends AbstractBinaryReader {
 		return result;
 	}
 
-	private IValue parseTuple(SharingStream reader, Type expected)
+	private IValue parseMapEntry(SharingStream reader, Type expected)
 			throws IOException {
 		IValue[] list = parseEntry(reader, expected);
 		IValue result = expected.make(vf, list);
+		return result;
+	}
+
+	private IValue parseTuple(SharingStream reader, Type expected)
+			throws IOException {
+		final int c = reader.readSkippingWS();
+		if (c == -1) {
+			throw new FactParseError("premature EOF encountered.",
+					reader.getPosition());
+		}
+		Iterator<Type> it = expected.iterator();
+		List<IValue> list = new ArrayList<IValue>();
+		if (it.hasNext()) {
+			IValue term = parse(reader, it.next());
+			list.add(term);
+
+		}
+		while (reader.getLastChar() == ',' && it.hasNext()) {
+			reader.readSkippingWS();
+			IValue term = parse(reader, it.next());
+			list.add(term);
+		}
+		IValue[] a = new IValue[list.size()];
+		int i = 0;
+		for (IValue q : list) {
+			a[i++] = q;
+		}
+		IValue result = expected.make(vf, a);
 		return result;
 	}
 
@@ -305,7 +340,6 @@ public class JSonReader extends AbstractBinaryReader {
 			throws IOException {
 		StringBuilder str = new StringBuilder();
 		IValue result;
-
 		do {
 			str.append((char) reader.getLastChar());
 		} while (Character.isDigit(reader.read()));
@@ -360,7 +394,6 @@ public class JSonReader extends AbstractBinaryReader {
 						reader.getPosition(), e);
 			}
 		}
-
 		reader.skipWS();
 		return result;
 	}
@@ -382,18 +415,15 @@ public class JSonReader extends AbstractBinaryReader {
 	private String parseStringLiteral(SharingStream reader) throws IOException {
 		boolean escaped;
 		StringBuilder str = new StringBuilder();
-
 		do {
 			escaped = false;
 			if (reader.read() == '\\') {
 				reader.read();
 				escaped = true;
 			}
-
 			int lastChar = reader.getLastChar();
 			if (lastChar == -1)
 				throw new IOException("Premature EOF.");
-
 			if (escaped) {
 				switch (lastChar) {
 				case 'n':
@@ -441,6 +471,51 @@ public class JSonReader extends AbstractBinaryReader {
 		return str.toString();
 	}
 
+	/* Returns list containing 1 element */
+	private IList buildTerm(IList terms, Type expected) {
+		IList r = (IList) tf.listType(tf.valueType()).make(vf);
+		System.err.println("BuildTerm:" + terms);
+		for (IValue elem : terms) {
+			ITuple tuple = (ITuple) elem;
+			String funname = ((IString) tuple.get(0)).getValue();
+			Set<Type> nodes = ts.lookupConstructor(expected, funname);
+			// TODO deal with overloading
+			Iterator<Type> iterator = nodes.iterator();
+			if (!iterator.hasNext()) {
+				throw new UndeclaredAbstractDataTypeException(expected);
+			}
+			Type node = iterator.next();
+			IList args = (IList) tf.listType(
+					tf.tupleType(tf.stringType(), tf.valueType())).make(vf);
+			@SuppressWarnings("rawtypes")
+			Iterator argsannos = ((IList) tuple.get(1)).iterator();
+			while (argsannos.hasNext()) {
+				ITuple t = (ITuple) argsannos.next();
+				if (((INode) (t.get(0))).getName().startsWith("args")) {
+					args = (IList) t.get(1);
+					// System.err.println("ARGS:" + args);
+					// System.err.println("MAKE:" + funname + " " + expected);
+					IList b = (IList) tf.listType(tf.valueType()).make(vf);
+					if (args.isEmpty())
+						b = buildTerm(args, expected);
+					else {
+						for (IValue arg : args)
+							b = b.concat(buildTerm((IList) (arg), expected));
+					}
+					IValue[] a = new IValue[b.length()];
+					int i = 0;
+					for (IValue c : b) {
+						a[i++] = c;
+					}
+					r = r.append(node.make(vf, funname, a));
+					// System.err.println("r= " + r);
+				}
+			}
+		}
+		System.err.println("R:" + r);
+		return r;
+	}
+
 	private IValue parseTerms(SharingStream reader, Type expected)
 			throws IOException {
 		Type base = expected;
@@ -448,11 +523,9 @@ public class JSonReader extends AbstractBinaryReader {
 		IValue[] terms = parseTermsArray(reader, elementType);
 		if (base.isListType() || base.isValueType()) {
 			IListWriter w = expected.writer(vf);
-
 			for (int i = terms.length - 1; i >= 0; i--) {
 				w.insert(terms[i]);
 			}
-
 			return w.done();
 		} else if (base.isSetType()) {
 			ISetWriter w = expected.writer(vf);
@@ -460,14 +533,18 @@ public class JSonReader extends AbstractBinaryReader {
 			return w.done();
 		} else if (base.isMapType()) {
 			IMapWriter w = expected.writer(vf);
-
 			for (IValue elem : terms) {
 				ITuple tuple = (ITuple) elem;
 				w.put(tuple.get(0), tuple.get(1));
 			}
-
 			return w.done();
 		} else if (base.isRelationType()) {
+			expected.make(vf, terms);
+		} else if (base.isAbstractDataType()) {
+			IList ts = (IList) tf.listType(tf.valueType()).make(vf, terms);
+			return buildTerm(ts, expected).get(0);
+		}
+		if (base.isRelationType()) {
 			ISetWriter w = expected.writer(vf);
 			w.insert(terms);
 			return w.done();
@@ -479,15 +556,21 @@ public class JSonReader extends AbstractBinaryReader {
 
 	private Type getElementType(Type expected) {
 		Type base = expected;
-
-		if (base.isListType()) {
+		System.err.println("getElementType:" + base);
+		if (base.isTupleType()) {
+			return base;
+		} else if (base.isRelationType()) {
+			System.err.println("getElentType:" + base + " "
+					+ base.getFieldTypes());
+			return base.getFieldTypes();
+		} else if (base.isListType()) {
 			return base.getElementType();
 		} else if (base.isSetType()) {
 			return base.getElementType();
 		} else if (base.isMapType()) {
 			return tf.tupleType(base.getKeyType(), base.getValueType());
-		} else if (base.isRelationType()) {
-			return base.getFieldTypes();
+		} else if (base.isAbstractDataType()) {
+			return tf.tupleType(tf.stringType(), tf.valueType());
 		} else if (base.isValueType()) {
 			return base;
 		} else {
@@ -497,21 +580,21 @@ public class JSonReader extends AbstractBinaryReader {
 
 	private IValue[] parseTermsArray(SharingStream reader, Type elementType)
 			throws IOException {
+		System.err.println("ParseTermsArray:" + elementType);
 		List<IValue> list = new ArrayList<IValue>(2);
 		IValue term = parse(reader,
-				elementType.isTupleType() ? elementType.getFieldType(0)
-						: elementType);
+				/* TO DO on monday: elementType.isTupleType() ? elementType.getFieldType(0)
+						: */ elementType);
 		list.add(term);
-		System.err.println("ParseTermsArray:" + term + " "
-				+ reader.getLastChar());
 		while (reader.getLastChar() == ',' || reader.getLastChar() == ':') {
 			int c = reader.getLastChar();
 			reader.readSkippingWS();
 
 			if (c == ':') {
 				IValue v = list.remove(list.size() - 1);
-				term = parse(reader, elementType.isTupleType()?elementType.getFieldType(1):
-					elementType);
+				term = parse(reader,
+						elementType.isTupleType() ? elementType.getFieldType(1)
+								: elementType);
 				term = tf.tupleType(tf.stringType(), tf.valueType()).make(vf,
 						v, term);
 			} else
