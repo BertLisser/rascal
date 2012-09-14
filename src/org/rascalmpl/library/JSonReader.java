@@ -17,22 +17,18 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Set;
 
 import org.eclipse.imp.pdb.facts.IConstructor;
 import org.eclipse.imp.pdb.facts.IList;
 import org.eclipse.imp.pdb.facts.IListWriter;
+import org.eclipse.imp.pdb.facts.IMap;
 import org.eclipse.imp.pdb.facts.IMapWriter;
-import org.eclipse.imp.pdb.facts.INode;
 import org.eclipse.imp.pdb.facts.ISetWriter;
-import org.eclipse.imp.pdb.facts.ITuple;
-import org.eclipse.imp.pdb.facts.IValue;
 import org.eclipse.imp.pdb.facts.IString;
+import org.eclipse.imp.pdb.facts.IValue;
 import org.eclipse.imp.pdb.facts.IValueFactory;
-import org.eclipse.imp.pdb.facts.IWriter;
 import org.eclipse.imp.pdb.facts.exceptions.FactParseError;
 import org.eclipse.imp.pdb.facts.exceptions.IllegalOperationException;
-import org.eclipse.imp.pdb.facts.exceptions.UndeclaredAbstractDataTypeException;
 import org.eclipse.imp.pdb.facts.io.AbstractBinaryReader;
 import org.eclipse.imp.pdb.facts.type.Type;
 import org.eclipse.imp.pdb.facts.type.TypeFactory;
@@ -44,11 +40,16 @@ public class JSonReader extends AbstractBinaryReader {
 	private TypeFactory tf = TypeFactory.getInstance();
 	private TypeStore ts;
 
+	private IString nameKey, argKey;
+
+	final boolean debug = true;
+
 	public IValue read(IValueFactory factory, TypeStore store, Type type,
 			InputStream stream) throws FactParseError, IOException {
 		this.vf = factory;
 		this.ts = store;
-
+		nameKey = (IString) tf.stringType().make(vf, "name");
+		argKey = (IString) tf.stringType().make(vf, "args");
 		int firstToken;
 		do {
 			firstToken = stream.read();
@@ -62,7 +63,11 @@ public class JSonReader extends AbstractBinaryReader {
 				|| typeByte == '[' || typeByte == '{') {
 			SharingStream sreader = new SharingStream(stream);
 			sreader.last_char = typeByte;
-			return parse(sreader, type);
+			IValue result = parse(sreader, type);
+			if (type.isAbstractDataType()) {
+				result = buildTerm((IMap) result);
+			}
+			return result;
 		} else {
 			throw new RuntimeException("nyi");
 		}
@@ -74,24 +79,22 @@ public class JSonReader extends AbstractBinaryReader {
 			throws IOException {
 		IValue result;
 		int start, end;
-
+		// System.err.println("Parse:" + expected+" "+reader.getLastChar());
 		start = reader.getPosition();
 		switch (reader.getLastChar()) {
 		case -1:
 			throw new FactParseError("premature EOF encountered.", start);
-		case '[':
 		case '{':
+			result = parseMap(reader, expected);
+			break;
+		case '[':
 			if (expected.isTupleType()) {
 				result = parseTuple(reader, expected);
 			} else
 				result = parseList(reader, expected);
 			break;
 		case '"':
-			System.err.println("Parse:" + expected);
-			if (expected.isTupleType() /* || expected.isMapType() */)
-				result = parseMapEntry(reader, expected);
-			else
-				result = parseString(reader, expected);
+			result = parseString(reader, expected);
 			break;
 		case '-':
 		case '0':
@@ -107,7 +110,7 @@ public class JSonReader extends AbstractBinaryReader {
 			result = parseNumber(reader, expected);
 			break;
 		default:
-			result = parseAppl(reader, expected);
+			throw new FactParseError("Illegal symbol", reader.getPosition());
 		}
 
 		if (reader.getLastChar() == '{') {
@@ -130,80 +133,6 @@ public class JSonReader extends AbstractBinaryReader {
 				throw new FactParseError("'}' expected", reader.getPosition());
 			}
 		}
-		return result;
-	}
-
-	private IValue parseAppl(SharingStream reader, Type expected)
-			throws IOException {
-		int c;
-		IValue result;
-		c = reader.getLastChar();
-		if (Character.isLetter(c)) {
-			String funname = parseId(reader);
-
-			Type node;
-			if (expected.isAbstractDataType()) {
-				Set<Type> nodes = ts.lookupConstructor(expected, funname);
-				// TODO deal with overloading
-				Iterator<Type> iterator = nodes.iterator();
-				if (!iterator.hasNext()) {
-					throw new UndeclaredAbstractDataTypeException(expected);
-				}
-				node = iterator.next();
-			} else {
-				node = expected;
-			}
-
-			c = reader.skipWS();
-			if (reader.getLastChar() == '(') {
-				c = reader.readSkippingWS();
-				if (c == -1) {
-					throw new FactParseError("premature EOF encountered.",
-							reader.getPosition());
-				}
-				if (reader.getLastChar() == ')') {
-					result = node.make(vf, ts, funname, new IValue[0]);
-				} else {
-					IValue[] list;
-					if (expected.isAbstractDataType()) {
-						list = parseFixedSizeATermsArray(reader,
-								node.getFieldTypes());
-					} else {
-						list = parseTermsArray(reader, TypeFactory
-								.getInstance().valueType());
-					}
-
-					if (reader.getLastChar() != ')') {
-						throw new FactParseError("expected ')' but got '"
-								+ (char) reader.getLastChar() + "'",
-								reader.getPosition());
-					}
-
-					if (expected.isAbstractDataType()) {
-						result = node.make(vf, ts, funname, list);
-					} else {
-						result = node.make(vf, ts, funname, list);
-					}
-				}
-				c = reader.readSkippingWS();
-			} else {
-				if (node.isAbstractDataType() || node.isConstructorType()) {
-					result = node.make(vf, ts);
-				} else {
-					result = tf.nodeType().make(vf, ts, funname);
-				}
-			}
-		} else {
-			throw new FactParseError("illegal character: "
-					+ (char) reader.getLastChar(), reader.getPosition());
-		}
-		return result;
-	}
-
-	private IValue parseMapEntry(SharingStream reader, Type expected)
-			throws IOException {
-		IValue[] list = parseEntry(reader, expected);
-		IValue result = expected.make(vf, list);
 		return result;
 	}
 
@@ -232,7 +161,51 @@ public class JSonReader extends AbstractBinaryReader {
 			a[i++] = q;
 		}
 		IValue result = expected.make(vf, a);
+		if (reader.getLastChar() != ']') {
+			throw new FactParseError("expected ']' but got '"
+					+ (char) reader.getLastChar() + "'", reader.getPosition());
+		}
+		reader.readSkippingWS();
 		return result;
+	}
+
+	private IValue[] parseEntry(SharingStream reader, Type mapType)
+			throws IOException {
+		IValue[] array = new IValue[2];
+		array[0] = parse(reader, mapType.getKeyType());
+		if (reader.getLastChar() == ':') {
+			reader.readSkippingWS();
+			array[1] = parse(reader, mapType.getValueType());
+		} else
+			throw new FactParseError("In map ':' expected",
+					reader.getPosition());
+		return array;
+	}
+
+	private IValue parseMap(SharingStream reader, Type expected)
+			throws IOException {
+		final int c = reader.readSkippingWS();
+		if (!expected.isMapType())
+			expected = tf.mapType(tf.stringType(), tf.valueType());
+		IMapWriter w = expected.writer(vf);
+		if (c == -1) {
+			throw new FactParseError("premature EOF encountered.",
+					reader.getPosition());
+		}
+		IValue[] term = parseEntry(reader, expected);
+		w.put(term[0], term[1]);
+		while (reader.getLastChar() == ',') {
+			reader.readSkippingWS();
+			term = parseEntry(reader, expected);
+			w.put(term[0], term[1]);
+
+		}
+		if (reader.getLastChar() != '}') {
+			throw new FactParseError("expected '}' but got '"
+					+ (char) reader.getLastChar() + "'", reader.getPosition());
+		}
+		reader.readSkippingWS();
+		return w.done();
 	}
 
 	private IValue parseString(SharingStream reader, Type expected)
@@ -398,20 +371,6 @@ public class JSonReader extends AbstractBinaryReader {
 		return result;
 	}
 
-	private String parseId(SharingStream reader) throws IOException {
-		int c = reader.getLastChar();
-		StringBuilder buf = new StringBuilder(32);
-
-		do {
-			buf.append((char) c);
-			c = reader.read();
-		} while (Character.isLetterOrDigit(c) || c == '_' || c == '-'
-				|| c == '+' || c == '*' || c == '$' || c == '.');
-
-		// slight deviation here, allowing . inside of identifiers
-		return buf.toString();
-	}
-
 	private String parseStringLiteral(SharingStream reader) throws IOException {
 		boolean escaped;
 		StringBuilder str = new StringBuilder();
@@ -471,49 +430,59 @@ public class JSonReader extends AbstractBinaryReader {
 		return str.toString();
 	}
 
-	/* Returns list containing 1 element */
-	private IList buildTerm(IList terms, Type expected) {
-		IList r = (IList) tf.listType(tf.valueType()).make(vf);
-		System.err.println("BuildTerm:" + terms);
-		for (IValue elem : terms) {
-			ITuple tuple = (ITuple) elem;
-			String funname = ((IString) tuple.get(0)).getValue();
-			Set<Type> nodes = ts.lookupConstructor(expected, funname);
-			// TODO deal with overloading
-			Iterator<Type> iterator = nodes.iterator();
-			if (!iterator.hasNext()) {
-				throw new UndeclaredAbstractDataTypeException(expected);
-			}
-			Type node = iterator.next();
-			IList args = (IList) tf.listType(
-					tf.tupleType(tf.stringType(), tf.valueType())).make(vf);
-			@SuppressWarnings("rawtypes")
-			Iterator argsannos = ((IList) tuple.get(1)).iterator();
-			while (argsannos.hasNext()) {
-				ITuple t = (ITuple) argsannos.next();
-				if (((INode) (t.get(0))).getName().startsWith("args")) {
-					args = (IList) t.get(1);
-					// System.err.println("ARGS:" + args);
-					// System.err.println("MAKE:" + funname + " " + expected);
-					IList b = (IList) tf.listType(tf.valueType()).make(vf);
-					if (args.isEmpty())
-						b = buildTerm(args, expected);
-					else {
-						for (IValue arg : args)
-							b = b.concat(buildTerm((IList) (arg), expected));
-					}
-					IValue[] a = new IValue[b.length()];
-					int i = 0;
-					for (IValue c : b) {
-						a[i++] = c;
-					}
-					r = r.append(node.make(vf, funname, a));
-					// System.err.println("r= " + r);
-				}
-			}
+	private IValue buildTerm(IList t) {
+		IValue[] a = new IValue[t.length()];
+		Type[] b = new Type[t.length()];
+		for (int i = 0; i < t.length(); i++) {
+			a[i] = buildTerm(t.get(i));
+			b[i] = a[i].getType();
 		}
-		System.err.println("R:" + r);
-		return r;
+		return (tf.listType(t.isEmpty() ? t.getElementType() : b[0])
+				.make(vf, a));
+	}
+
+	private IValue buildTerm(IMap t) {
+		IList rs = (IList) tf.listType(tf.valueType()).make(vf);
+		final Iterator<IValue> args = ((IList) t.get(argKey)).iterator();
+
+		final String funname = ((IString) t.get(nameKey)).getValue();
+		while (args.hasNext()) {
+			IValue arg = (IValue) args.next();
+			arg = buildTerm(arg);
+			rs = rs.append(arg);
+		}
+		IValue[] a = new IValue[rs.length()];
+		Type[] b = new Type[rs.length()];
+		int i = 0;
+		for (IValue c : rs) {
+			a[i] = c;
+			b[i] = c.getType();
+			i++;
+		}
+		if (funname.equals("tuple")) {
+			return tf.tupleType(b).make(vf, a);
+		}
+		if (funname.equals("set")) {
+			return tf.setType(b.length > 0 ? b[0] : tf.valueType()).make(vf, a);
+		}
+		Type types = tf.tupleType(b);
+		if (debug)
+			System.err.println("lookupFirstConstructor:" + funname + " "
+					+ types);
+		/* Local data types also searched - Monday */
+		Type node = ts.lookupFirstConstructor(funname, types);
+		System.err.println("node="+node);
+		if (node.isAliasType())
+			node = node.getAliased();
+		return node.make(vf, a);
+	}
+
+	private IValue buildTerm(IValue t) {
+		if (t instanceof IMap)
+			return buildTerm((IMap) t);
+		if (t instanceof IList)
+			return buildTerm((IList) t);
+		return t;
 	}
 
 	private IValue parseTerms(SharingStream reader, Type expected)
@@ -527,48 +496,28 @@ public class JSonReader extends AbstractBinaryReader {
 				w.insert(terms[i]);
 			}
 			return w.done();
-		} else if (base.isSetType()) {
-			ISetWriter w = expected.writer(vf);
-			w.insert(terms);
-			return w.done();
-		} else if (base.isMapType()) {
-			IMapWriter w = expected.writer(vf);
-			for (IValue elem : terms) {
-				ITuple tuple = (ITuple) elem;
-				w.put(tuple.get(0), tuple.get(1));
-			}
-			return w.done();
-		} else if (base.isRelationType()) {
-			expected.make(vf, terms);
-		} else if (base.isAbstractDataType()) {
-			IList ts = (IList) tf.listType(tf.valueType()).make(vf, terms);
-			return buildTerm(ts, expected).get(0);
-		}
-		if (base.isRelationType()) {
+		} else if (base.isSetType() || base.isRelationType()) {
 			ISetWriter w = expected.writer(vf);
 			w.insert(terms);
 			return w.done();
 		}
-
 		throw new FactParseError("Unexpected type " + expected,
 				reader.getPosition());
 	}
 
 	private Type getElementType(Type expected) {
 		Type base = expected;
-		System.err.println("getElementType:" + base);
 		if (base.isTupleType()) {
 			return base;
 		} else if (base.isRelationType()) {
-			System.err.println("getElentType:" + base + " "
-					+ base.getFieldTypes());
 			return base.getFieldTypes();
 		} else if (base.isListType()) {
 			return base.getElementType();
 		} else if (base.isSetType()) {
 			return base.getElementType();
 		} else if (base.isMapType()) {
-			return tf.tupleType(base.getKeyType(), base.getValueType());
+			return base;
+			// return tf.tupleType(base.getKeyType(), base.getValueType());
 		} else if (base.isAbstractDataType()) {
 			return tf.tupleType(tf.stringType(), tf.valueType());
 		} else if (base.isValueType()) {
@@ -580,74 +529,21 @@ public class JSonReader extends AbstractBinaryReader {
 
 	private IValue[] parseTermsArray(SharingStream reader, Type elementType)
 			throws IOException {
-		System.err.println("ParseTermsArray:" + elementType);
 		List<IValue> list = new ArrayList<IValue>(2);
-		IValue term = parse(reader,
-				/* TO DO on monday: elementType.isTupleType() ? elementType.getFieldType(0)
-						: */ elementType);
-		list.add(term);
-		while (reader.getLastChar() == ',' || reader.getLastChar() == ':') {
-			int c = reader.getLastChar();
-			reader.readSkippingWS();
-
-			if (c == ':') {
-				IValue v = list.remove(list.size() - 1);
-				term = parse(reader,
-						elementType.isTupleType() ? elementType.getFieldType(1)
-								: elementType);
-				term = tf.tupleType(tf.stringType(), tf.valueType()).make(vf,
-						v, term);
-			} else
-				term = parse(reader, elementType);
-			list.add(term);
-		}
-
-		IValue[] array = new IValue[list.size()];
-		ListIterator<IValue> iter = list.listIterator();
-		int index = 0;
-		while (iter.hasNext()) {
-			array[index++] = iter.next();
-		}
-		return array;
-	}
-
-	private IValue[] parseFixedSizeATermsArray(SharingStream reader,
-			Type elementTypes) throws IOException {
-		List<IValue> list = new ArrayList<IValue>(elementTypes.getArity());
-		int i = 0;
-		Type elementType = elementTypes.getFieldType(i++);
-
 		IValue term = parse(reader, elementType);
 		list.add(term);
 		while (reader.getLastChar() == ',') {
-			elementType = elementTypes.getFieldType(i++);
+			reader.getLastChar();
 			reader.readSkippingWS();
 			term = parse(reader, elementType);
 			list.add(term);
 		}
-
 		IValue[] array = new IValue[list.size()];
 		ListIterator<IValue> iter = list.listIterator();
 		int index = 0;
 		while (iter.hasNext()) {
 			array[index++] = iter.next();
 		}
-		return array;
-	}
-
-	private IValue[] parseEntry(SharingStream reader, Type elementTypes)
-			throws IOException {
-		IValue[] array = new IValue[2];
-
-		array[0] = parseString(reader, elementTypes.getFieldType(0));
-		System.err.println("parseEntry! " + elementTypes.getFieldType(0) + " "
-				+ elementTypes.getFieldType(1) + " " + reader.getLastChar());
-		if (reader.getLastChar() == ':') {
-			reader.readSkippingWS();
-			array[1] = parse(reader, elementTypes.getFieldType(1));
-		}
-		System.err.println("H!:" + array[0] + " " + array[1] + " "
-				+ reader.getLastChar());
 		return array;
 	}
 
