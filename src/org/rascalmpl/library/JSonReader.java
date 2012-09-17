@@ -20,6 +20,7 @@ import java.util.ListIterator;
 
 import org.eclipse.imp.pdb.facts.IConstructor;
 import org.eclipse.imp.pdb.facts.IList;
+import org.eclipse.imp.pdb.facts.ITuple;
 import org.eclipse.imp.pdb.facts.IListWriter;
 import org.eclipse.imp.pdb.facts.IMap;
 import org.eclipse.imp.pdb.facts.IMapWriter;
@@ -64,9 +65,11 @@ public class JSonReader extends AbstractBinaryReader {
 			SharingStream sreader = new SharingStream(stream);
 			sreader.last_char = typeByte;
 			IValue result = parse(sreader, type);
+			System.err.println("PARSED:"+result);
 			if (type.isAbstractDataType()) {
-				result = buildTerm((IMap) result);
-			}
+				result = buildTerm((IMap) result, type);
+			} else
+				result = buildTerm(result, type);
 			return result;
 		} else {
 			throw new RuntimeException("nyi");
@@ -79,7 +82,7 @@ public class JSonReader extends AbstractBinaryReader {
 			throws IOException {
 		IValue result;
 		int start, end;
-		// System.err.println("Parse:" + expected+" "+reader.getLastChar());
+		System.err.println("Parse:" + expected + " " + reader.getLastChar());
 		start = reader.getPosition();
 		switch (reader.getLastChar()) {
 		case -1:
@@ -143,24 +146,28 @@ public class JSonReader extends AbstractBinaryReader {
 			throw new FactParseError("premature EOF encountered.",
 					reader.getPosition());
 		}
+		IValue[] a = new IValue[expected.getArity()];
+		Type[] b = new Type[expected.getArity()];
 		Iterator<Type> it = expected.iterator();
-		List<IValue> list = new ArrayList<IValue>();
+		int i = 0;
 		if (it.hasNext()) {
-			IValue term = parse(reader, it.next());
-			list.add(term);
-
+			Type typ = it.next();
+			IValue term = parse(reader, typ);
+			a[i] = term;
+			b[i] = term.getType();
+			System.err.println("ParseTuple:"+a[i]+" "+b[i]+" "+i);
+			i++;
 		}
 		while (reader.getLastChar() == ',' && it.hasNext()) {
 			reader.readSkippingWS();
 			IValue term = parse(reader, it.next());
-			list.add(term);
+			a[i] = term;
+			b[i] = term.getType();
+			System.err.println("ParseTuple:"+a[i]+" "+b[i]+" "+i);
+			i++;
 		}
-		IValue[] a = new IValue[list.size()];
-		int i = 0;
-		for (IValue q : list) {
-			a[i++] = q;
-		}
-		IValue result = expected.make(vf, a);
+		IValue result = tf.tupleType(b).make(vf, a);
+		System.err.println("result="+result);
 		if (reader.getLastChar() != ']') {
 			throw new FactParseError("expected ']' but got '"
 					+ (char) reader.getLastChar() + "'", reader.getPosition());
@@ -430,25 +437,42 @@ public class JSonReader extends AbstractBinaryReader {
 		return str.toString();
 	}
 
-	private IValue buildTerm(IList t) {
+	private IValue buildTerm(IList t, Type type) {
 		IValue[] a = new IValue[t.length()];
 		Type[] b = new Type[t.length()];
+		System.err.println("buildTermList");
 		for (int i = 0; i < t.length(); i++) {
-			a[i] = buildTerm(t.get(i));
+			System.err.println(t.get(i));
+			a[i] = buildTerm(t.get(i), t.getElementType());
 			b[i] = a[i].getType();
+			System.err.println("R:" + a[i] + " " + b[i]);
 		}
+		if (type.isTupleType())
+			return tf.tupleType(b).make(vf, a);
 		return (tf.listType(t.isEmpty() ? t.getElementType() : b[0])
 				.make(vf, a));
 	}
 
-	private IValue buildTerm(IMap t) {
+	private IValue buildTerm(ITuple t, Type type) {
+		IValue[] a = new IValue[t.arity()];
+		Type[] b = new Type[t.arity()];
+		System.err.println("buildTermTyple:"+type);
+		for (int i = 0; i < t.arity(); i++) {
+			a[i] = buildTerm(t.get(i), type.getFieldType(i));
+			b[i] = a[i].getType();
+			System.err.println("buildTermTyple:"+a[i]+" "+b[i]);
+		}
+		return tf.tupleType(b).make(vf, a);
+	}
+
+	private IValue buildTerm(IMap t, Type type) {
 		IList rs = (IList) tf.listType(tf.valueType()).make(vf);
 		final Iterator<IValue> args = ((IList) t.get(argKey)).iterator();
 
 		final String funname = ((IString) t.get(nameKey)).getValue();
 		while (args.hasNext()) {
 			IValue arg = (IValue) args.next();
-			arg = buildTerm(arg);
+			arg = buildTerm(arg, type);
 			rs = rs.append(arg);
 		}
 		IValue[] a = new IValue[rs.length()];
@@ -470,18 +494,23 @@ public class JSonReader extends AbstractBinaryReader {
 			System.err.println("lookupFirstConstructor:" + funname + " "
 					+ types);
 		/* Local data types also searched - Monday */
-		Type node = ts.lookupFirstConstructor(funname, types);
-		System.err.println("node="+node);
+		Type node = ts.lookupConstructor(type, funname, types);
+		if (node == null)
+			node = ts.lookupFirstConstructor(funname, types);
+		System.err.println("node=" + node);
 		if (node.isAliasType())
 			node = node.getAliased();
 		return node.make(vf, a);
 	}
 
-	private IValue buildTerm(IValue t) {
+	private IValue buildTerm(IValue t, Type type) {
+		System.err.println("BuildTerm:"+t+" "+type);
 		if (t instanceof IMap)
-			return buildTerm((IMap) t);
+			return buildTerm((IMap) t, type);
 		if (t instanceof IList)
-			return buildTerm((IList) t);
+			return buildTerm((IList) t, type);
+		if (t instanceof ITuple)
+			return buildTerm((ITuple) t, type);
 		return t;
 	}
 
