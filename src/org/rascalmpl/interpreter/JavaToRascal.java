@@ -50,7 +50,7 @@ public class JavaToRascal {
 			put("int", TF.integerType());
 			put("void", TF.voidType());
 			put("real", TF.realType());
-			put("rational", TF.rationalType());
+			// put("rational", TF.rationalType());
 			put("num", TF.numberType());
 		}
 	};

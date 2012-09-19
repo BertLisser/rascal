@@ -120,15 +120,12 @@ data Tree
      | amb(set[Tree] alternatives)  
      | char(int character)
      ;
-data Tree
-     = error(Production prod, list[Tree] args, list[Tree] rest) /*2*/
-     | expected(Symbol symbol)
-     | erroramb(set[Tree] alternatives)
-     | errorcycle(Symbol symbol, int cycleLength)
-     ;
+
 data Production 
      = prod(Symbol def, list[Symbol] symbols, set[Attr] attributes) /*3*/
      | regular(Symbol def)
+     | error(Production prod, int dot)
+     | skipped()
      ;
      
 data Attr 
@@ -306,6 +303,8 @@ unparse(parse(#Exp, "2+3"));
 @javaClass{org.rascalmpl.library.Prelude}
 public java str unparse(Tree tree);
 
+@javaClass{org.rascalmpl.library.Prelude}
+@reflect{Uses Evaluator to create constructors in the caller scope (to fire rewrite rules).}
 @doc{
 Synopsis: Implode a parse tree according to a given ADT.
 
@@ -426,8 +425,6 @@ Can be imploded into:
 data Exp = add(Exp, Exp);
 </listing>
 }
-@javaClass{org.rascalmpl.library.Prelude}
-@reflect{Uses Evaluator to create constructors in the caller scope (to fire rewrite rules).}
 public java &T<:node implode(type[&T<:node] t, Tree tree);
 
 @doc{
