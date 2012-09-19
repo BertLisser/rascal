@@ -20,6 +20,8 @@ import java.util.ListIterator;
 
 import org.eclipse.imp.pdb.facts.IConstructor;
 import org.eclipse.imp.pdb.facts.IList;
+import org.eclipse.imp.pdb.facts.IRelationWriter;
+import org.eclipse.imp.pdb.facts.ISet;
 import org.eclipse.imp.pdb.facts.ITuple;
 import org.eclipse.imp.pdb.facts.IListWriter;
 import org.eclipse.imp.pdb.facts.IMap;
@@ -49,6 +51,7 @@ public class JSonReader extends AbstractBinaryReader {
 			InputStream stream) throws FactParseError, IOException {
 		this.vf = factory;
 		this.ts = store;
+		System.err.println("read1:" + type);
 		nameKey = (IString) tf.stringType().make(vf, "name");
 		argKey = (IString) tf.stringType().make(vf, "args");
 		int firstToken;
@@ -64,8 +67,9 @@ public class JSonReader extends AbstractBinaryReader {
 				|| typeByte == '[' || typeByte == '{') {
 			SharingStream sreader = new SharingStream(stream);
 			sreader.last_char = typeByte;
+			System.err.println("read2:" + type);
 			IValue result = parse(sreader, type);
-			System.err.println("PARSED:"+result);
+			System.err.println("PARSED:" + result);
 			if (type.isAbstractDataType()) {
 				result = buildTerm((IMap) result, type);
 			} else
@@ -155,7 +159,7 @@ public class JSonReader extends AbstractBinaryReader {
 			IValue term = parse(reader, typ);
 			a[i] = term;
 			b[i] = term.getType();
-			System.err.println("ParseTuple:"+a[i]+" "+b[i]+" "+i);
+			System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
 			i++;
 		}
 		while (reader.getLastChar() == ',' && it.hasNext()) {
@@ -163,11 +167,11 @@ public class JSonReader extends AbstractBinaryReader {
 			IValue term = parse(reader, it.next());
 			a[i] = term;
 			b[i] = term.getType();
-			System.err.println("ParseTuple:"+a[i]+" "+b[i]+" "+i);
+			System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
 			i++;
 		}
 		IValue result = tf.tupleType(b).make(vf, a);
-		System.err.println("result="+result);
+		System.err.println("result=" + result);
 		if (reader.getLastChar() != ']') {
 			throw new FactParseError("expected ']' but got '"
 					+ (char) reader.getLastChar() + "'", reader.getPosition());
@@ -449,27 +453,68 @@ public class JSonReader extends AbstractBinaryReader {
 		}
 		if (type.isTupleType())
 			return tf.tupleType(b).make(vf, a);
+		if (type.isSetType())
+			return (tf.setType(t.isEmpty() ? t.getElementType() : b[0]).make(
+					vf, a));
 		return (tf.listType(t.isEmpty() ? t.getElementType() : b[0])
 				.make(vf, a));
+	}
+
+	private IValue buildTerm(ISet t, Type type) {
+		System.err.println("buildTermSet" + " " + t.size());
+		IValue[] a = new IValue[t.size()];
+		Type[] b = new Type[t.size()];
+		Iterator<IValue> it = t.iterator();
+		for (int i = 0; i < t.size(); i++) {
+			a[i] = buildTerm(it.next(), type.isValueType() ? t.getElementType()
+					: type.getElementType());
+			b[i] = a[i].getType();
+			System.err.println("R:" + a[i] + " " + b[i]);
+		}
+		return (tf.setType(t.isEmpty() ? t.getElementType() : b[0]).make(vf, a));
 	}
 
 	private IValue buildTerm(ITuple t, Type type) {
 		IValue[] a = new IValue[t.arity()];
 		Type[] b = new Type[t.arity()];
-		System.err.println("buildTermTyple:"+type);
 		for (int i = 0; i < t.arity(); i++) {
-			a[i] = buildTerm(t.get(i), type.getFieldType(i));
+			a[i] = buildTerm(t.get(i), type.isValueType() ? t.get(i).getType()
+					: type.getFieldType(i));
 			b[i] = a[i].getType();
-			System.err.println("buildTermTyple:"+a[i]+" "+b[i]);
 		}
 		return tf.tupleType(b).make(vf, a);
 	}
 
+	private IValue _buildTerm(IMap t, Type type) {
+		IValue[] a1 = new IValue[t.size()];
+		Type[] b1 = new Type[t.size()];
+		IValue[] a2 = new IValue[t.size()];
+		Type[] b2 = new Type[t.size()];
+		Iterator<IValue> it = t.iterator();
+		for (int i = 0; i < t.size(); i++) {
+			a1[i] = buildTerm(it.next(), type.getKeyType());
+			b1[i] = a1[i].getType();
+			a2[i] = buildTerm(t.get(a1[i]), type.getValueType());
+			b2[i] = a2[i].getType();
+		}
+		IMapWriter w = tf.mapType(a1.length == 0 ? t.getKeyType() : b1[0],
+				a1.length == 0 ? t.getValueType() : b2[0]).writer(vf);
+		for (int i = 0; i < t.size(); i++) {
+			w.put(a1[i], a2[i]);
+		}
+		return w.done();
+	}
+
 	private IValue buildTerm(IMap t, Type type) {
+		IValue key = t.get(nameKey);
+		if (key == null)
+			if (type.isMapType())
+				return _buildTerm(t, type);
+			else
+				return t;
+		final String funname = ((IString) key).getValue();
 		IList rs = (IList) tf.listType(tf.valueType()).make(vf);
 		final Iterator<IValue> args = ((IList) t.get(argKey)).iterator();
-
-		final String funname = ((IString) t.get(nameKey)).getValue();
 		while (args.hasNext()) {
 			IValue arg = (IValue) args.next();
 			arg = buildTerm(arg, type);
@@ -492,9 +537,11 @@ public class JSonReader extends AbstractBinaryReader {
 		Type types = tf.tupleType(b);
 		if (debug)
 			System.err.println("lookupFirstConstructor:" + funname + " "
-					+ types);
+					+ types + " " + type);
 		/* Local data types also searched - Monday */
-		Type node = ts.lookupConstructor(type, funname, types);
+		Type node = null;
+		if (type.isAbstractDataType())
+			node = ts.lookupConstructor(type, funname, types);
 		if (node == null)
 			node = ts.lookupFirstConstructor(funname, types);
 		System.err.println("node=" + node);
@@ -504,11 +551,13 @@ public class JSonReader extends AbstractBinaryReader {
 	}
 
 	private IValue buildTerm(IValue t, Type type) {
-		System.err.println("BuildTerm:"+t+" "+type);
+		System.err.println("BuildTerm:" + t + " " + type);
 		if (t instanceof IMap)
 			return buildTerm((IMap) t, type);
 		if (t instanceof IList)
 			return buildTerm((IList) t, type);
+		if (t instanceof ISet)
+			return buildTerm((ISet) t, type);
 		if (t instanceof ITuple)
 			return buildTerm((ITuple) t, type);
 		return t;
@@ -518,14 +567,23 @@ public class JSonReader extends AbstractBinaryReader {
 			throws IOException {
 		Type base = expected;
 		Type elementType = getElementType(expected);
+		System.err.println("ParseTerms1:" + base + " " + elementType);
 		IValue[] terms = parseTermsArray(reader, elementType);
+		System.err.println("ParseTerms2:" + base + " " + elementType);
 		if (base.isListType() || base.isValueType()) {
 			IListWriter w = expected.writer(vf);
 			for (int i = terms.length - 1; i >= 0; i--) {
 				w.insert(terms[i]);
 			}
 			return w.done();
-		} else if (base.isSetType() || base.isRelationType()) {
+		} else if (base.isRelationType()) {
+			System.err.println("Relation:" + base + " " + terms);
+			IRelationWriter w = expected.writer(vf);
+			w.insert(terms);
+			return w.done();
+
+		} else if (base.isSetType()) {
+			System.err.println("Set:" + base + " " + terms);
 			ISetWriter w = expected.writer(vf);
 			w.insert(terms);
 			return w.done();
