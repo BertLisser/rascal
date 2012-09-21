@@ -11,8 +11,10 @@
  *******************************************************************************/
 package org.rascalmpl.library;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -45,13 +47,13 @@ public class JSonReader extends AbstractBinaryReader {
 
 	private IString nameKey, argKey;
 
-	final boolean debug = true;
+	final boolean debug = false;
 
 	public IValue read(IValueFactory factory, TypeStore store, Type type,
 			InputStream stream) throws FactParseError, IOException {
 		this.vf = factory;
 		this.ts = store;
-		System.err.println("read1:" + type);
+		if (debug) System.err.println("read1:" + type);
 		nameKey = (IString) tf.stringType().make(vf, "name");
 		argKey = (IString) tf.stringType().make(vf, "args");
 		int firstToken;
@@ -64,12 +66,13 @@ public class JSonReader extends AbstractBinaryReader {
 
 		char typeByte = (char) firstToken;
 		if (Character.isLetterOrDigit(typeByte) || typeByte == '_'
-				|| typeByte == '[' || typeByte == '{') {
+				|| typeByte == '[' || typeByte == '{' || typeByte == '-'
+				|| typeByte == '.' ) {
 			SharingStream sreader = new SharingStream(stream);
 			sreader.last_char = typeByte;
-			System.err.println("read2:" + type);
+			if (debug) System.err.println("read2:" + type);
 			IValue result = parse(sreader, type);
-			System.err.println("PARSED:" + result);
+			if (debug) System.err.println("PARSED:" + result);
 			if (type.isAbstractDataType()) {
 				result = buildTerm((IMap) result, type);
 			} else
@@ -80,13 +83,11 @@ public class JSonReader extends AbstractBinaryReader {
 		}
 	}
 
-	// TODO add support for anonymous constructors (is already done for the
-	// parseNumber case)
 	private IValue parse(SharingStream reader, Type expected)
 			throws IOException {
 		IValue result;
-		int start, end;
-		System.err.println("Parse:" + expected + " " + reader.getLastChar());
+		int start;
+		if (debug) System.err.println("Parse:" + expected + " " + reader.getLastChar());
 		start = reader.getPosition();
 		switch (reader.getLastChar()) {
 		case -1:
@@ -124,8 +125,8 @@ public class JSonReader extends AbstractBinaryReader {
 			result = parseAnnotations(reader, result);
 		}
 
-		end = reader.getPosition();
-		reader.storeNextTerm(result, end - start);
+		// end = reader.getPosition();
+		// reader.storeNextTerm(result, end - start);
 
 		return result;
 	}
@@ -145,6 +146,7 @@ public class JSonReader extends AbstractBinaryReader {
 
 	private IValue parseTuple(SharingStream reader, Type expected)
 			throws IOException {
+		if (debug) System.err.println("ParseTuple:" + expected);
 		final int c = reader.readSkippingWS();
 		if (c == -1) {
 			throw new FactParseError("premature EOF encountered.",
@@ -159,7 +161,7 @@ public class JSonReader extends AbstractBinaryReader {
 			IValue term = parse(reader, typ);
 			a[i] = term;
 			b[i] = term.getType();
-			System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
+			if (debug) System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
 			i++;
 		}
 		while (reader.getLastChar() == ',' && it.hasNext()) {
@@ -167,11 +169,11 @@ public class JSonReader extends AbstractBinaryReader {
 			IValue term = parse(reader, it.next());
 			a[i] = term;
 			b[i] = term.getType();
-			System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
+			if (debug) System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
 			i++;
 		}
 		IValue result = tf.tupleType(b).make(vf, a);
-		System.err.println("result=" + result);
+		if (debug) System.err.println("result=" + result);
 		if (reader.getLastChar() != ']') {
 			throw new FactParseError("expected ']' but got '"
 					+ (char) reader.getLastChar() + "'", reader.getPosition());
@@ -183,6 +185,8 @@ public class JSonReader extends AbstractBinaryReader {
 	private IValue[] parseEntry(SharingStream reader, Type mapType)
 			throws IOException {
 		IValue[] array = new IValue[2];
+		if (debug) System.err.println("ParseEntry:" + mapType.getKeyType() + " "
+				+ mapType.getValueType());
 		array[0] = parse(reader, mapType.getKeyType());
 		if (reader.getLastChar() == ':') {
 			reader.readSkippingWS();
@@ -196,8 +200,10 @@ public class JSonReader extends AbstractBinaryReader {
 	private IValue parseMap(SharingStream reader, Type expected)
 			throws IOException {
 		final int c = reader.readSkippingWS();
+		if (debug) System.err.println("ParseMap1:" + expected);
 		if (!expected.isMapType())
 			expected = tf.mapType(tf.stringType(), tf.valueType());
+		if (debug) System.err.println("ParseMap2:" + expected);
 		IMapWriter w = expected.writer(vf);
 		if (c == -1) {
 			throw new FactParseError("premature EOF encountered.",
@@ -224,11 +230,6 @@ public class JSonReader extends AbstractBinaryReader {
 		int c;
 		IValue result;
 		String str = parseStringLiteral(reader);
-
-		// note that we interpret all strings as strings, not possible function
-		// names.
-		// this deviates from the ATerm library.
-
 		result = expected.make(vf, str);
 		c = reader.readSkippingWS(); /* " */
 		if (c == -1) {
@@ -241,6 +242,7 @@ public class JSonReader extends AbstractBinaryReader {
 	private IValue parseList(SharingStream reader, Type expected)
 			throws IOException {
 		IValue result;
+		if (debug) System.err.println("ParseList:" + expected);
 		final int c = reader.readSkippingWS();
 		if (c == -1) {
 			throw new FactParseError("premature EOF encountered.",
@@ -444,12 +446,12 @@ public class JSonReader extends AbstractBinaryReader {
 	private IValue buildTerm(IList t, Type type) {
 		IValue[] a = new IValue[t.length()];
 		Type[] b = new Type[t.length()];
-		System.err.println("buildTermList");
+		if (debug) System.err.println("buildTermList");
 		for (int i = 0; i < t.length(); i++) {
-			System.err.println(t.get(i));
+			if (debug) System.err.println(t.get(i));
 			a[i] = buildTerm(t.get(i), t.getElementType());
 			b[i] = a[i].getType();
-			System.err.println("R:" + a[i] + " " + b[i]);
+			if (debug) System.err.println("R:" + a[i] + " " + b[i]);
 		}
 		if (type.isTupleType())
 			return tf.tupleType(b).make(vf, a);
@@ -461,7 +463,7 @@ public class JSonReader extends AbstractBinaryReader {
 	}
 
 	private IValue buildTerm(ISet t, Type type) {
-		System.err.println("buildTermSet" + " " + t.size());
+		if (debug) System.err.println("buildTermSet" + " " + t.size());
 		IValue[] a = new IValue[t.size()];
 		Type[] b = new Type[t.size()];
 		Iterator<IValue> it = t.iterator();
@@ -469,7 +471,6 @@ public class JSonReader extends AbstractBinaryReader {
 			a[i] = buildTerm(it.next(), type.isValueType() ? t.getElementType()
 					: type.getElementType());
 			b[i] = a[i].getType();
-			System.err.println("R:" + a[i] + " " + b[i]);
 		}
 		return (tf.setType(t.isEmpty() ? t.getElementType() : b[0]).make(vf, a));
 	}
@@ -535,7 +536,7 @@ public class JSonReader extends AbstractBinaryReader {
 			return tf.setType(b.length > 0 ? b[0] : tf.valueType()).make(vf, a);
 		}
 		Type types = tf.tupleType(b);
-		if (debug)
+		// if (debug)
 			System.err.println("lookupFirstConstructor:" + funname + " "
 					+ types + " " + type);
 		/* Local data types also searched - Monday */
@@ -551,7 +552,7 @@ public class JSonReader extends AbstractBinaryReader {
 	}
 
 	private IValue buildTerm(IValue t, Type type) {
-		System.err.println("BuildTerm:" + t + " " + type);
+		// System.err.println("BuildTerm:" + t + " " + type);
 		if (t instanceof IMap)
 			return buildTerm((IMap) t, type);
 		if (t instanceof IList)
@@ -567,9 +568,8 @@ public class JSonReader extends AbstractBinaryReader {
 			throws IOException {
 		Type base = expected;
 		Type elementType = getElementType(expected);
-		System.err.println("ParseTerms1:" + base + " " + elementType);
 		IValue[] terms = parseTermsArray(reader, elementType);
-		System.err.println("ParseTerms2:" + base + " " + elementType);
+		if (debug) System.err.println("ParseTerms2:" + base + " " + elementType);
 		if (base.isListType() || base.isValueType()) {
 			IListWriter w = expected.writer(vf);
 			for (int i = terms.length - 1; i >= 0; i--) {
@@ -577,13 +577,11 @@ public class JSonReader extends AbstractBinaryReader {
 			}
 			return w.done();
 		} else if (base.isRelationType()) {
-			System.err.println("Relation:" + base + " " + terms);
 			IRelationWriter w = expected.writer(vf);
 			w.insert(terms);
 			return w.done();
 
 		} else if (base.isSetType()) {
-			System.err.println("Set:" + base + " " + terms);
 			ISetWriter w = expected.writer(vf);
 			w.insert(terms);
 			return w.done();
@@ -640,7 +638,7 @@ public class JSonReader extends AbstractBinaryReader {
 
 		private static final int INITIAL_BUFFER_SIZE = 1024;
 
-		private InputStream reader;
+		private BufferedReader reader;
 
 		int last_char;
 		private int pos;
@@ -648,7 +646,7 @@ public class JSonReader extends AbstractBinaryReader {
 		private int nr_terms;
 		private IValue[] table;
 
-		private byte[] buffer;
+		private char[] buffer;
 		private int limit;
 		private int bufferPos;
 
@@ -657,14 +655,14 @@ public class JSonReader extends AbstractBinaryReader {
 		}
 
 		public SharingStream(InputStream stream, int bufferSize) {
-			this.reader = stream;
+			this.reader = new BufferedReader(new InputStreamReader(stream));
 			last_char = -1;
 			pos = 0;
 
 			if (bufferSize < INITIAL_BUFFER_SIZE)
-				buffer = new byte[bufferSize];
+				buffer = new char[bufferSize];
 			else
-				buffer = new byte[INITIAL_BUFFER_SIZE];
+				buffer = new char[INITIAL_BUFFER_SIZE];
 			limit = -1;
 			bufferPos = -1;
 		}
