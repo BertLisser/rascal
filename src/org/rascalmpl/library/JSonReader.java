@@ -53,7 +53,8 @@ public class JSonReader extends AbstractBinaryReader {
 			InputStream stream) throws FactParseError, IOException {
 		this.vf = factory;
 		this.ts = store;
-		if (debug) System.err.println("read1:" + type);
+		if (debug)
+			System.err.println("read1:" + type);
 		nameKey = (IString) tf.stringType().make(vf, "name");
 		argKey = (IString) tf.stringType().make(vf, "args");
 		int firstToken;
@@ -67,12 +68,14 @@ public class JSonReader extends AbstractBinaryReader {
 		char typeByte = (char) firstToken;
 		if (Character.isLetterOrDigit(typeByte) || typeByte == '_'
 				|| typeByte == '[' || typeByte == '{' || typeByte == '-'
-				|| typeByte == '.' ) {
-			SharingStream sreader = new SharingStream(stream);
+				|| typeByte == '.') {
+			JSonStream sreader = new JSonStream(stream);
 			sreader.last_char = typeByte;
-			if (debug) System.err.println("read2:" + type);
+			if (debug)
+				System.err.println("read2:" + type);
 			IValue result = parse(sreader, type);
-			if (debug) System.err.println("PARSED:" + result);
+			if (debug)
+				System.err.println("PARSED:" + result);
 			if (type.isAbstractDataType()) {
 				result = buildTerm((IMap) result, type);
 			} else
@@ -83,11 +86,13 @@ public class JSonReader extends AbstractBinaryReader {
 		}
 	}
 
-	private IValue parse(SharingStream reader, Type expected)
+	private IValue parse(JSonStream reader, Type expected)
 			throws IOException {
 		IValue result;
 		int start;
-		if (debug) System.err.println("Parse:" + expected + " " + reader.getLastChar());
+		if (debug)
+			System.err
+					.println("Parse:" + expected + " " + reader.getLastChar());
 		start = reader.getPosition();
 		switch (reader.getLastChar()) {
 		case -1:
@@ -100,6 +105,10 @@ public class JSonReader extends AbstractBinaryReader {
 				result = parseTuple(reader, expected);
 			} else
 				result = parseList(reader, expected);
+			break;
+		case 't':
+		case 'f':
+			result = parseBoolean(reader, expected);
 			break;
 		case '"':
 			result = parseString(reader, expected);
@@ -131,7 +140,7 @@ public class JSonReader extends AbstractBinaryReader {
 		return result;
 	}
 
-	private IValue parseAnnotations(SharingStream reader, IValue result)
+	private IValue parseAnnotations(JSonStream reader, IValue result)
 			throws IOException {
 		if (reader.readSkippingWS() == '}') {
 			reader.readSkippingWS();
@@ -144,9 +153,10 @@ public class JSonReader extends AbstractBinaryReader {
 		return result;
 	}
 
-	private IValue parseTuple(SharingStream reader, Type expected)
+	private IValue parseTuple(JSonStream reader, Type expected)
 			throws IOException {
-		if (debug) System.err.println("ParseTuple:" + expected);
+		if (debug)
+			System.err.println("ParseTuple:" + expected);
 		final int c = reader.readSkippingWS();
 		if (c == -1) {
 			throw new FactParseError("premature EOF encountered.",
@@ -161,7 +171,8 @@ public class JSonReader extends AbstractBinaryReader {
 			IValue term = parse(reader, typ);
 			a[i] = term;
 			b[i] = term.getType();
-			if (debug) System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
+			if (debug)
+				System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
 			i++;
 		}
 		while (reader.getLastChar() == ',' && it.hasNext()) {
@@ -169,11 +180,13 @@ public class JSonReader extends AbstractBinaryReader {
 			IValue term = parse(reader, it.next());
 			a[i] = term;
 			b[i] = term.getType();
-			if (debug) System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
+			if (debug)
+				System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
 			i++;
 		}
 		IValue result = tf.tupleType(b).make(vf, a);
-		if (debug) System.err.println("result=" + result);
+		if (debug)
+			System.err.println("result=" + result);
 		if (reader.getLastChar() != ']') {
 			throw new FactParseError("expected ']' but got '"
 					+ (char) reader.getLastChar() + "'", reader.getPosition());
@@ -182,11 +195,12 @@ public class JSonReader extends AbstractBinaryReader {
 		return result;
 	}
 
-	private IValue[] parseEntry(SharingStream reader, Type mapType)
+	private IValue[] parseEntry(JSonStream reader, Type mapType)
 			throws IOException {
 		IValue[] array = new IValue[2];
-		if (debug) System.err.println("ParseEntry:" + mapType.getKeyType() + " "
-				+ mapType.getValueType());
+		if (debug)
+			System.err.println("ParseEntry:" + mapType.getKeyType() + " "
+					+ mapType.getValueType());
 		array[0] = parse(reader, mapType.getKeyType());
 		if (reader.getLastChar() == ':') {
 			reader.readSkippingWS();
@@ -197,13 +211,15 @@ public class JSonReader extends AbstractBinaryReader {
 		return array;
 	}
 
-	private IValue parseMap(SharingStream reader, Type expected)
+	private IValue parseMap(JSonStream reader, Type expected)
 			throws IOException {
 		final int c = reader.readSkippingWS();
-		if (debug) System.err.println("ParseMap1:" + expected);
+		if (debug)
+			System.err.println("ParseMap1:" + expected);
 		if (!expected.isMapType())
 			expected = tf.mapType(tf.stringType(), tf.valueType());
-		if (debug) System.err.println("ParseMap2:" + expected);
+		if (debug)
+			System.err.println("ParseMap2:" + expected);
 		IMapWriter w = expected.writer(vf);
 		if (c == -1) {
 			throw new FactParseError("premature EOF encountered.",
@@ -215,7 +231,6 @@ public class JSonReader extends AbstractBinaryReader {
 			reader.readSkippingWS();
 			term = parseEntry(reader, expected);
 			w.put(term[0], term[1]);
-
 		}
 		if (reader.getLastChar() != '}') {
 			throw new FactParseError("expected '}' but got '"
@@ -225,7 +240,7 @@ public class JSonReader extends AbstractBinaryReader {
 		return w.done();
 	}
 
-	private IValue parseString(SharingStream reader, Type expected)
+	private IValue parseString(JSonStream reader, Type expected)
 			throws IOException {
 		int c;
 		IValue result;
@@ -239,10 +254,28 @@ public class JSonReader extends AbstractBinaryReader {
 		return result;
 	}
 
-	private IValue parseList(SharingStream reader, Type expected)
+	private IValue parseBoolean(JSonStream reader, Type expected)
+			throws IOException {
+		int c;
+		IValue result;
+		String str = parseBooleanLiteral(reader);
+		if (!str.equalsIgnoreCase("true") && !str.equalsIgnoreCase("false"))
+			throw new FactParseError("true or false expected but found:" + str
+					+ ".", reader.getPosition());
+		result = expected.make(vf, str.equalsIgnoreCase("true") ? true : false);
+	    c = reader.readSkippingWS(); /* e */
+//		if (c == -1) {
+//			throw new FactParseError("premature EOF encountered.",
+//					reader.getPosition());
+//		}
+		return result;
+	}
+
+	private IValue parseList(JSonStream reader, Type expected)
 			throws IOException {
 		IValue result;
-		if (debug) System.err.println("ParseList:" + expected);
+		if (debug)
+			System.err.println("ParseList:" + expected);
 		final int c = reader.readSkippingWS();
 		if (c == -1) {
 			throw new FactParseError("premature EOF encountered.",
@@ -270,7 +303,7 @@ public class JSonReader extends AbstractBinaryReader {
 		return result;
 	}
 
-	private IValue parseAnnos(SharingStream reader, IValue result)
+	private IValue parseAnnos(JSonStream reader, IValue result)
 			throws IOException {
 		result = parseAnno(reader, result);
 		while (reader.getLastChar() == ',') {
@@ -281,7 +314,7 @@ public class JSonReader extends AbstractBinaryReader {
 		return result;
 	}
 
-	private IValue parseAnno(SharingStream reader, IValue result)
+	private IValue parseAnno(JSonStream reader, IValue result)
 			throws IOException {
 		if (reader.getLastChar() == '[') {
 			int c = reader.readSkippingWS();
@@ -322,7 +355,7 @@ public class JSonReader extends AbstractBinaryReader {
 		return result;
 	}
 
-	private IValue parseNumber(SharingStream reader, Type expected)
+	private IValue parseNumber(JSonStream reader, Type expected)
 			throws IOException {
 		StringBuilder str = new StringBuilder();
 		IValue result;
@@ -333,15 +366,27 @@ public class JSonReader extends AbstractBinaryReader {
 		if (reader.getLastChar() != '.' && reader.getLastChar() != 'e'
 				&& reader.getLastChar() != 'E' && reader.getLastChar() != 'l'
 				&& reader.getLastChar() != 'L') {
-			int val;
-			try {
-				val = Integer.parseInt(str.toString());
-			} catch (NumberFormatException e) {
-				throw new FactParseError("malformed int:" + str,
-						reader.getPosition());
+			if (!expected.isRealType()) {
+				int val;
+				try {
+					val = Integer.parseInt(str.toString());
+				} catch (NumberFormatException e) {
+					throw new FactParseError("malformed int:" + str,
+							reader.getPosition());
+				}
+				result = expected.make(vf, ts, val);
+			} else {
+				double val;
+				try {
+					val = Double.valueOf(str.toString()).doubleValue();
+				} catch (NumberFormatException e) {
+					throw new FactParseError("malformed real:" + str,
+							reader.getPosition());
+				}
+				result = expected.make(vf, ts, val);
+
 			}
 
-			result = expected.make(vf, ts, val);
 		} else if (reader.getLastChar() == 'l' || reader.getLastChar() == 'L') {
 			reader.read();
 			throw new FactParseError("No support for longs",
@@ -384,7 +429,22 @@ public class JSonReader extends AbstractBinaryReader {
 		return result;
 	}
 
-	private String parseStringLiteral(SharingStream reader) throws IOException {
+	private String parseBooleanLiteral(JSonStream reader) throws IOException {
+		StringBuilder str = new StringBuilder();
+		str.append( (char) reader.getLastChar());
+		do {
+			reader.read();
+			int lastChar = reader.getLastChar();
+			str.append((char) lastChar);
+			if (lastChar == -1)
+				throw new IOException("Premature EOF.");
+
+		} while (reader.getLastChar() != 'e');
+		// str.append('e'); /* true or false */
+		return str.toString();
+	}
+
+	private String parseStringLiteral(JSonStream reader) throws IOException {
 		boolean escaped;
 		StringBuilder str = new StringBuilder();
 		do {
@@ -446,12 +506,15 @@ public class JSonReader extends AbstractBinaryReader {
 	private IValue buildTerm(IList t, Type type) {
 		IValue[] a = new IValue[t.length()];
 		Type[] b = new Type[t.length()];
-		if (debug) System.err.println("buildTermList");
+		if (debug)
+			System.err.println("buildTermList");
 		for (int i = 0; i < t.length(); i++) {
-			if (debug) System.err.println(t.get(i));
+			if (debug)
+				System.err.println(t.get(i));
 			a[i] = buildTerm(t.get(i), t.getElementType());
 			b[i] = a[i].getType();
-			if (debug) System.err.println("R:" + a[i] + " " + b[i]);
+			if (debug)
+				System.err.println("R:" + a[i] + " " + b[i]);
 		}
 		if (type.isTupleType())
 			return tf.tupleType(b).make(vf, a);
@@ -463,7 +526,8 @@ public class JSonReader extends AbstractBinaryReader {
 	}
 
 	private IValue buildTerm(ISet t, Type type) {
-		if (debug) System.err.println("buildTermSet" + " " + t.size());
+		if (debug)
+			System.err.println("buildTermSet" + " " + t.size());
 		IValue[] a = new IValue[t.size()];
 		Type[] b = new Type[t.size()];
 		Iterator<IValue> it = t.iterator();
@@ -537,8 +601,8 @@ public class JSonReader extends AbstractBinaryReader {
 		}
 		Type types = tf.tupleType(b);
 		// if (debug)
-			System.err.println("lookupFirstConstructor:" + funname + " "
-					+ types + " " + type);
+		System.err.println("lookupFirstConstructor:" + funname + " " + types
+				+ " " + type);
 		/* Local data types also searched - Monday */
 		Type node = null;
 		if (type.isAbstractDataType())
@@ -564,12 +628,13 @@ public class JSonReader extends AbstractBinaryReader {
 		return t;
 	}
 
-	private IValue parseTerms(SharingStream reader, Type expected)
+	private IValue parseTerms(JSonStream reader, Type expected)
 			throws IOException {
 		Type base = expected;
 		Type elementType = getElementType(expected);
 		IValue[] terms = parseTermsArray(reader, elementType);
-		if (debug) System.err.println("ParseTerms2:" + base + " " + elementType);
+		if (debug)
+			System.err.println("ParseTerms2:" + base + " " + elementType);
 		if (base.isListType() || base.isValueType()) {
 			IListWriter w = expected.writer(vf);
 			for (int i = terms.length - 1; i >= 0; i--) {
@@ -612,7 +677,7 @@ public class JSonReader extends AbstractBinaryReader {
 		}
 	}
 
-	private IValue[] parseTermsArray(SharingStream reader, Type elementType)
+	private IValue[] parseTermsArray(JSonStream reader, Type elementType)
 			throws IOException {
 		List<IValue> list = new ArrayList<IValue>(2);
 		IValue term = parse(reader, elementType);
@@ -632,9 +697,7 @@ public class JSonReader extends AbstractBinaryReader {
 		return array;
 	}
 
-	class SharingStream {
-		private static final int INITIAL_TABLE_SIZE = 2048;
-		private static final int TABLE_INCREMENT = 4096;
+	class JSonStream {
 
 		private static final int INITIAL_BUFFER_SIZE = 1024;
 
@@ -643,18 +706,16 @@ public class JSonReader extends AbstractBinaryReader {
 		int last_char;
 		private int pos;
 
-		private int nr_terms;
-		private IValue[] table;
 
 		private char[] buffer;
 		private int limit;
 		private int bufferPos;
 
-		public SharingStream(InputStream reader) {
+		public JSonStream(InputStream reader) {
 			this(reader, INITIAL_BUFFER_SIZE);
 		}
 
-		public SharingStream(InputStream stream, int bufferSize) {
+		public JSonStream(InputStream stream, int bufferSize) {
 			this.reader = new BufferedReader(new InputStreamReader(stream));
 			last_char = -1;
 			pos = 0;
@@ -665,32 +726,6 @@ public class JSonReader extends AbstractBinaryReader {
 				buffer = new char[INITIAL_BUFFER_SIZE];
 			limit = -1;
 			bufferPos = -1;
-		}
-
-		public void initializeSharing() {
-			table = new IValue[INITIAL_TABLE_SIZE];
-			nr_terms = 0;
-		}
-
-		public void storeNextTerm(IValue t, int size) {
-			if (table == null) {
-				return;
-			}
-
-			if (nr_terms == table.length) {
-				IValue[] new_table = new IValue[table.length + TABLE_INCREMENT];
-				System.arraycopy(table, 0, new_table, 0, table.length);
-				table = new_table;
-			}
-
-			table[nr_terms++] = t;
-		}
-
-		public IValue getTerm(int index) {
-			if (index < 0 || index >= nr_terms) {
-				throw new RuntimeException("illegal index");
-			}
-			return table[index];
 		}
 
 		public int read() throws IOException {
