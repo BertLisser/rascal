@@ -86,8 +86,7 @@ public class JSonReader extends AbstractBinaryReader {
 		}
 	}
 
-	private IValue parse(JSonStream reader, Type expected)
-			throws IOException {
+	private IValue parse(JSonStream reader, Type expected) throws IOException {
 		IValue result;
 		int start;
 		if (debug)
@@ -225,6 +224,10 @@ public class JSonReader extends AbstractBinaryReader {
 			throw new FactParseError("premature EOF encountered.",
 					reader.getPosition());
 		}
+		if (reader.getLastChar() == '}') {
+			reader.readSkippingWS();
+			return w.done();
+		}
 		IValue[] term = parseEntry(reader, expected);
 		w.put(term[0], term[1]);
 		while (reader.getLastChar() == ',') {
@@ -263,11 +266,11 @@ public class JSonReader extends AbstractBinaryReader {
 			throw new FactParseError("true or false expected but found:" + str
 					+ ".", reader.getPosition());
 		result = expected.make(vf, str.equalsIgnoreCase("true") ? true : false);
-	    c = reader.readSkippingWS(); /* e */
-//		if (c == -1) {
-//			throw new FactParseError("premature EOF encountered.",
-//					reader.getPosition());
-//		}
+		c = reader.readSkippingWS(); /* e */
+		// if (c == -1) {
+		// throw new FactParseError("premature EOF encountered.",
+		// reader.getPosition());
+		// }
 		return result;
 	}
 
@@ -283,7 +286,8 @@ public class JSonReader extends AbstractBinaryReader {
 		}
 		if (c == ']') {
 			reader.readSkippingWS();
-			if (expected.isListType()) {
+			if (expected.isListType() || expected.isSetType()
+					|| expected.isRelationType() || expected.isTupleType()) {
 				result = expected.make(vf);
 			} else if (expected.isValueType()) {
 				result = tf.listType(tf.valueType()).make(vf);
@@ -362,31 +366,18 @@ public class JSonReader extends AbstractBinaryReader {
 		do {
 			str.append((char) reader.getLastChar());
 		} while (Character.isDigit(reader.read()));
-
 		if (reader.getLastChar() != '.' && reader.getLastChar() != 'e'
 				&& reader.getLastChar() != 'E' && reader.getLastChar() != 'l'
 				&& reader.getLastChar() != 'L') {
-			if (!expected.isRealType()) {
-				int val;
-				try {
-					val = Integer.parseInt(str.toString());
-				} catch (NumberFormatException e) {
-					throw new FactParseError("malformed int:" + str,
-							reader.getPosition());
-				}
-				result = expected.make(vf, ts, val);
-			} else {
-				double val;
-				try {
-					val = Double.valueOf(str.toString()).doubleValue();
-				} catch (NumberFormatException e) {
-					throw new FactParseError("malformed real:" + str,
-							reader.getPosition());
-				}
-				result = expected.make(vf, ts, val);
-
+			int val;
+			try {
+				val = Integer.parseInt(str.toString());
+			} catch (NumberFormatException e) {
+				throw new FactParseError("malformed int:" + str,
+						reader.getPosition());
 			}
-
+			result = !expected.isValueType() ? expected.make(vf, ts, val) : tf
+					.integerType().make(vf, ts, val);
 		} else if (reader.getLastChar() == 'l' || reader.getLastChar() == 'L') {
 			reader.read();
 			throw new FactParseError("No support for longs",
@@ -419,7 +410,8 @@ public class JSonReader extends AbstractBinaryReader {
 			double val;
 			try {
 				val = Double.valueOf(str.toString()).doubleValue();
-				result = expected.make(vf, ts, val);
+				result = !expected.isValueType() ? expected.make(vf, ts, val)
+						: tf.realType().make(vf, ts, val);
 			} catch (NumberFormatException e) {
 				throw new FactParseError("malformed real",
 						reader.getPosition(), e);
@@ -431,7 +423,7 @@ public class JSonReader extends AbstractBinaryReader {
 
 	private String parseBooleanLiteral(JSonStream reader) throws IOException {
 		StringBuilder str = new StringBuilder();
-		str.append( (char) reader.getLastChar());
+		str.append((char) reader.getLastChar());
 		do {
 			reader.read();
 			int lastChar = reader.getLastChar();
@@ -705,7 +697,6 @@ public class JSonReader extends AbstractBinaryReader {
 
 		int last_char;
 		private int pos;
-
 
 		private char[] buffer;
 		private int limit;
