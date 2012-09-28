@@ -47,6 +47,8 @@ import org.eclipse.imp.pdb.facts.visitors.VisitorException;
 
 public class JSonWriter implements IValueTextWriter {
 
+	static boolean typed = true;
+
 	public void write(IValue value, java.io.Writer stream) throws IOException {
 		try {
 			value.accept(new Writer(stream));
@@ -131,18 +133,24 @@ public class JSonWriter implements IValueTextWriter {
 		}
 
 		/* [expr,...] */
+		@SuppressWarnings("unused")
 		public IValue visitSet(ISet o) throws VisitorException {
-			if (inNode>0) append("{\"name\":\"set\",\"args\":");
+			if (typed || inNode > 0)
+				append("{\"name\":\"set\",\"args\":");
 			visitSequence(o.iterator());
-			if (inNode>0) append('}');
+			if (typed || inNode > 0)
+				append('}');
 			return o;
 		}
 
 		/* [expr,...] */
+		@SuppressWarnings("unused")
 		public IValue visitTuple(ITuple o) throws VisitorException {
-			if (inNode>0) append("{\"name\":\"tuple\",\"args\":");
+			if (typed || inNode > 0)
+				append("{\"name\":\"tuple\",\"args\":");
 			visitSequence(o.iterator());
-			if (inNode>0) append('}');
+			if (typed || inNode > 0)
+				append('}');
 			return o;
 		}
 
@@ -179,25 +187,43 @@ public class JSonWriter implements IValueTextWriter {
 				}
 				append('}');
 			} else {
-				append('[');
-				if (mapIterator.hasNext()) {
+				if (typed || inNode > 0)
+					append("{\"name\":\"map\",\"args\":[");
+				else
 					append('[');
+				if (mapIterator.hasNext()) {
+					if (typed || inNode > 0)
+						append("{\"name\":\"tuple\",\"args\":[");
+					else
+						append('[');
 					IValue key = mapIterator.next();
 					key.accept(this);
 					append(',');
 					o.get(key).accept(this);
-					append(']');
+					if (typed || inNode > 0)
+						append("]}");
+					else
+						append(']');
 					while (mapIterator.hasNext()) {
 						append(',');
-						append('[');
+						if (typed || inNode > 0)
+							append("{\"name\":\"tuple\",\"args\":[");
+						else
+							append('[');
 						key = mapIterator.next();
 						key.accept(this);
 						append(',');
 						o.get(key).accept(this);
-						append(']');
+						if (typed || inNode > 0)
+							append("]}");
+						else
+							append(']');
 					}
 				}
-				append(']');
+				if (typed || inNode > 0)
+					append("]}");
+				else
+					append(']');
 			}
 			return o;
 		}
