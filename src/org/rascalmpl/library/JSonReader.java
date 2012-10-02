@@ -521,6 +521,9 @@ public class JSonReader extends AbstractBinaryReader {
 		if (type.isSetType())
 			return (tf.setType(t.isEmpty() ? t.getElementType() : b[0]).make(
 					vf, a));
+		if (type.isRelationType())
+			return (tf.setType(t.isEmpty() ? t.getElementType() : b[0]).make(
+					vf, a));
 		return (tf.listType(t.isEmpty() ? t.getElementType() : b[0])
 				.make(vf, a));
 	}
@@ -555,11 +558,13 @@ public class JSonReader extends AbstractBinaryReader {
 		Type[] b1 = new Type[t.size()];
 		IValue[] a2 = new IValue[t.size()];
 		Type[] b2 = new Type[t.size()];
+		Type keyType = type.isMapType()?type.getKeyType():t.getType().getKeyType();
+		Type valueType = type.isMapType()?type.getValueType():t.getType().getValueType();
 		Iterator<IValue> it = t.iterator();
 		for (int i = 0; i < t.size(); i++) {
-			a1[i] = buildTerm(it.next(), type.getKeyType());
+			a1[i] = buildTerm(it.next(), keyType);
 			b1[i] = a1[i].getType();
-			a2[i] = buildTerm(t.get(a1[i]), type.getValueType());
+			a2[i] = buildTerm(t.get(a1[i]), valueType);
 			b2[i] = a2[i].getType();
 		}
 		IMapWriter w = tf.mapType(a1.length == 0 ? t.getKeyType() : b1[0],
@@ -572,12 +577,17 @@ public class JSonReader extends AbstractBinaryReader {
 
 	private IValue buildTerm(IMap t, Type type) {
 		IValue key = t.get(nameKey);
-		if (key == null)
-			if (type.isMapType())
+		if (debug && key != null)
+			System.err.println("builterm key=" + key);
+		if (key == null) {
+			if (type.isMapType() || t.getType().isMapType())
 				return _buildTerm(t, type);
 			else
 				return t;
+		}
 		final String funname = ((IString) key).getValue();
+		if (debug && key != null)
+			System.err.println("builterm funname=" + funname);
 		IList rs = (IList) tf.listType(tf.valueType()).make(vf);
 		final Iterator<IValue> args = ((IList) t.get(argKey)).iterator();
 		while (args.hasNext()) {
@@ -602,8 +612,6 @@ public class JSonReader extends AbstractBinaryReader {
 			return tf.setType(b.length > 0 ? b[0] : tf.valueType()).make(vf, a);
 		}
 		if (funname.equals("map")) {
-			System.err.println("buildTerm:" + b[0].getFieldType(0) + " "
-					+ b[0].getFieldType(1));
 			IMapWriter w = tf.mapType(
 					a.length == 0 ? tf.valueType() : b[0].getFieldType(0),
 					a.length == 0 ? tf.valueType() : b[0].getFieldType(1))
