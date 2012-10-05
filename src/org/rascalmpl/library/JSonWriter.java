@@ -49,6 +49,8 @@ public class JSonWriter implements IValueTextWriter {
 
 	static boolean typed = true;
 
+	static boolean debug = false;
+
 	public void write(IValue value, java.io.Writer stream) throws IOException {
 		try {
 			value.accept(new Writer(stream));
@@ -110,14 +112,30 @@ public class JSonWriter implements IValueTextWriter {
 		// TODO: There probably isn't a good ATerm repr of rationals,
 		// what should we do here?
 		public IValue visitRational(IRational o) throws VisitorException {
-			return null;
+			if (typed || inNode > 0)
+				append("{\"name\":\"rat\",\"args\":[");
+			else
+				append('[');
+			o.numerator();
+			o.numerator().accept(this);
+			append(',');
+			o.denominator().accept(this);
+			if (typed || inNode > 0)
+				append("]}");
+			else
+				append(']');
+			return o;
 		}
 
 		private void visitSequence(Iterator<IValue> listIterator)
 				throws VisitorException {
 			append('[');
 			if (listIterator.hasNext()) {
-				listIterator.next().accept(this);
+				IValue v = listIterator.next();
+				if (debug)
+					System.err.println("VisitList:" + v + " " + v.getClass()
+							+ " " + v.getType());
+				v.accept(this);
 				while (listIterator.hasNext()) {
 					append(',');
 					listIterator.next().accept(this);
@@ -135,6 +153,8 @@ public class JSonWriter implements IValueTextWriter {
 		/* [expr,...] */
 		@SuppressWarnings("unused")
 		public IValue visitSet(ISet o) throws VisitorException {
+			if (debug)
+				System.err.println("VisitSet:" + o);
 			if (typed || inNode > 0)
 				append("{\"name\":\"set\",\"args\":");
 			visitSequence(o.iterator());
@@ -146,6 +166,8 @@ public class JSonWriter implements IValueTextWriter {
 		/* [expr,...] */
 		@SuppressWarnings("unused")
 		public IValue visitTuple(ITuple o) throws VisitorException {
+			if (debug)
+				System.err.println("VisitTuple:" + o);
 			if (typed || inNode > 0)
 				append("{\"name\":\"tuple\",\"args\":");
 			visitSequence(o.iterator());
@@ -156,7 +178,11 @@ public class JSonWriter implements IValueTextWriter {
 
 		/* [expr,...] */
 		public IValue visitRelation(IRelation o) throws VisitorException {
+			if (typed || inNode > 0)
+				append("{\"name\":\"set\",\"args\":");
 			visitSequence(o.iterator());
+			if (typed || inNode > 0)
+				append('}');
 			return o;
 		}
 
@@ -280,7 +306,16 @@ public class JSonWriter implements IValueTextWriter {
 
 		public IValue visitSourceLocation(ISourceLocation o)
 				throws VisitorException {
-			return null;
+			if (typed || inNode > 0)
+				append("{\"name\":\"loc\",\"args\":[");
+			else
+				append('[');
+			append("\"" + o.getURI().toString() + "\"");
+			if (typed || inNode > 0)
+				append("]}");
+			else
+				append(']');
+			return o;
 		}
 
 		public IValue visitString(IString o) throws VisitorException {
