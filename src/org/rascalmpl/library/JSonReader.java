@@ -7,7 +7,7 @@
  *
  * Contributors:
  *    Jurgen Vinju (jurgenv@cwi.nl) - initial API and implementation
-
+ *    Bert Lisser  (Bert.Lisser@cwi.nl)
  *******************************************************************************/
 package org.rascalmpl.library;
 
@@ -15,7 +15,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -41,6 +43,9 @@ import org.eclipse.imp.pdb.facts.io.AbstractBinaryReader;
 import org.eclipse.imp.pdb.facts.type.Type;
 import org.eclipse.imp.pdb.facts.type.TypeFactory;
 import org.eclipse.imp.pdb.facts.type.TypeStore;
+import org.rascalmpl.interpreter.utils.RuntimeExceptionFactory;
+
+import com.ibm.icu.text.SimpleDateFormat;
 
 // TODO: add support for values of type Value, for this we need overloading resolving
 public class JSonReader extends AbstractBinaryReader {
@@ -492,6 +497,21 @@ public class JSonReader extends AbstractBinaryReader {
 
 		return str.toString();
 	}
+	
+	IValue dateTime(String s) {
+    final String formatString = "yyyy-MM-dd HH:mm:ss.SSSZ";
+	try {
+		SimpleDateFormat fmt = new SimpleDateFormat(formatString);
+		Date dt = fmt.parse(s);
+		return vf.datetime(dt.getTime());
+	} catch (IllegalArgumentException iae) {
+		throw RuntimeExceptionFactory.dateTimeParsingError("Cannot parse input datetime: " + s + 
+				" using format string: " + formatString, null, null);
+	} catch (ParseException e) {
+		throw RuntimeExceptionFactory.dateTimeParsingError("Cannot parse input datetime: " + s + 
+				" using format string: " + formatString, null, null);
+	}
+	}
 
 	private IValue buildTerm(IList t, Type type) {
 		IValue[] a = new IValue[t.length()];
@@ -629,6 +649,8 @@ public class JSonReader extends AbstractBinaryReader {
 			}
 			return w.done();
 		}
+		if (funname.equals("datetime")) return dateTime(((IString) a[0]).getValue());
+		
 		Type types = tf.tupleType(b);
 		// if (debug)
 		System.err.println("lookupFirstConstructor:" + funname + " " + types

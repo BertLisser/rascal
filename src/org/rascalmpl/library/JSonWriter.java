@@ -7,6 +7,7 @@
  *
  * Contributors:
  *    Jurgen Vinju (jurgenv@cwi.nl) - initial API and implementation
+ *    Bert Lisser    - Bert.Lisser@cwi.nl
  *******************************************************************************/
 package org.rascalmpl.library;
 
@@ -15,6 +16,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
+import org.rascalmpl.library.Prelude;
 
 import org.eclipse.imp.pdb.facts.IBool;
 import org.eclipse.imp.pdb.facts.IConstructor;
@@ -50,6 +52,8 @@ public class JSonWriter implements IValueTextWriter {
 	static boolean typed = true;
 
 	static boolean debug = false;
+	
+	static final String name = "name", args = "args";
 
 	public void write(IValue value, java.io.Writer stream) throws IOException {
 		try {
@@ -113,7 +117,7 @@ public class JSonWriter implements IValueTextWriter {
 		// what should we do here?
 		public IValue visitRational(IRational o) throws VisitorException {
 			if (typed || inNode > 0)
-				append("{\"name\":\"rat\",\"args\":[");
+				append("{\""+name+"\":\"rat\",\""+args+"\":[");
 			else
 				append('[');
 			o.numerator();
@@ -156,7 +160,7 @@ public class JSonWriter implements IValueTextWriter {
 			if (debug)
 				System.err.println("VisitSet:" + o);
 			if (typed || inNode > 0)
-				append("{\"name\":\"set\",\"args\":");
+				append("{\""+name+"\":\"set\",\""+args+"\":");
 			visitSequence(o.iterator());
 			if (typed || inNode > 0)
 				append('}');
@@ -169,7 +173,7 @@ public class JSonWriter implements IValueTextWriter {
 			if (debug)
 				System.err.println("VisitTuple:" + o);
 			if (typed || inNode > 0)
-				append("{\"name\":\"tuple\",\"args\":");
+				append("{\""+name+"\":\"tuple\",\""+args+"\":");
 			visitSequence(o.iterator());
 			if (typed || inNode > 0)
 				append('}');
@@ -179,7 +183,7 @@ public class JSonWriter implements IValueTextWriter {
 		/* [expr,...] */
 		public IValue visitRelation(IRelation o) throws VisitorException {
 			if (typed || inNode > 0)
-				append("{\"name\":\"set\",\"args\":");
+				append("{\""+name+"\":\"set\",\""+args+"\":");
 			visitSequence(o.iterator());
 			if (typed || inNode > 0)
 				append('}');
@@ -214,12 +218,12 @@ public class JSonWriter implements IValueTextWriter {
 				append('}');
 			} else {
 				if (typed || inNode > 0)
-					append("{\"name\":\"map\",\"args\":[");
+					append("{\""+name+"\":\"map\",\""+args+"\":[");
 				else
 					append('[');
 				if (mapIterator.hasNext()) {
 					if (typed || inNode > 0)
-						append("{\"name\":\"tuple\",\"args\":[");
+						append("{\""+name+"\":\"tuple\",\""+args+"\":[");
 					else
 						append('[');
 					IValue key = mapIterator.next();
@@ -233,7 +237,7 @@ public class JSonWriter implements IValueTextWriter {
 					while (mapIterator.hasNext()) {
 						append(',');
 						if (typed || inNode > 0)
-							append("{\"name\":\"tuple\",\"args\":[");
+							append("{\""+name+"\":\"tuple\",\""+args+"\":[");
 						else
 							append('[');
 						key = mapIterator.next();
@@ -266,7 +270,7 @@ public class JSonWriter implements IValueTextWriter {
 			Map<String, IValue> annos = o.getAnnotations();
 			Iterator<String> annoIterator = annos.keySet().iterator();
 			inNode++;
-			append("{\"name\":");
+			append("{\""+name+"\":");
 			append('\"');
 			append(o.getName().replaceAll("\"", "\\\\\"")
 					.replaceAll("\n", "\\\\n"));
@@ -307,14 +311,14 @@ public class JSonWriter implements IValueTextWriter {
 		public IValue visitSourceLocation(ISourceLocation o)
 				throws VisitorException {
 			if (typed || inNode > 0)
-				append("{\"name\":\"loc\",\"args\":[");
-			else
-				append('[');
+				append("{\""+name+"\":\"loc\",\"args\":[");
+//			else
+//				append('[');
 			append("\"" + o.getURI().toString() + "\"");
 			if (typed || inNode > 0)
 				append("]}");
-			else
-				append(']');
+//			else
+//				append(']');
 			return o;
 		}
 
@@ -333,7 +337,15 @@ public class JSonWriter implements IValueTextWriter {
 		}
 
 		public IValue visitDateTime(IDateTime o) throws VisitorException {
-			return null;
+			if (typed || inNode > 0)
+				append("{\""+name+"\":\"datetime\",\"args\":[");
+			append('\"');
+			SimpleDateFormat sd = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ"); 
+			append(sd.format(new Date(o.getInstant())));
+			append('\"');
+			if (typed || inNode > 0)
+				append("]}");
+			return o;
 		}
 	}
 

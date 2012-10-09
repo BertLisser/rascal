@@ -169,7 +169,7 @@ public class RandomValueTypeVisitor implements ITypeVisitor<IValue> {
 			if (argument == null) {
 				return null;
 				/*
-				 * Het is onmogelijk om de constructor te bouwen als ŽŽn
+				 * Het is onmogelijk om de constructor te bouwen als ï¿½ï¿½n
 				 * argument null is.
 				 */
 			}
@@ -181,7 +181,10 @@ public class RandomValueTypeVisitor implements ITypeVisitor<IValue> {
 
 	@Override
 	public IValue visitDateTime(Type type) {
-		return vf.datetime(stRandom.nextLong());
+		long maxDate = vf.date(3000, 12, 31).getInstant();
+		long n = stRandom.nextLong();
+        if (n<0) n=-n;
+		return vf.datetime(n%maxDate);
 	}
 
 	@Override
