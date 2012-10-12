@@ -53,7 +53,7 @@ public class JSonWriter implements IValueTextWriter {
 
 	static boolean debug = false;
 	
-	static final String name = "name", args = "args";
+	static final String name = "#name", args = "#args";
 
 	public void write(IValue value, java.io.Writer stream) throws IOException {
 		try {
@@ -275,7 +275,7 @@ public class JSonWriter implements IValueTextWriter {
 			append(o.getName().replaceAll("\"", "\\\\\"")
 					.replaceAll("\n", "\\\\n"));
 			append('\"');
-			append(",\"args\":");
+			append(",\""+args+"\":");
 			append('[');
 			if (nodeIterator.hasNext()) {
 				IValue v = nodeIterator.next();
@@ -311,14 +311,10 @@ public class JSonWriter implements IValueTextWriter {
 		public IValue visitSourceLocation(ISourceLocation o)
 				throws VisitorException {
 			if (typed || inNode > 0)
-				append("{\""+name+"\":\"loc\",\"args\":[");
-//			else
-//				append('[');
+				append("{\""+name+"\":\"loc\",\""+args+"\":[");
 			append("\"" + o.getURI().toString() + "\"");
 			if (typed || inNode > 0)
 				append("]}");
-//			else
-//				append(']');
 			return o;
 		}
 
@@ -338,7 +334,7 @@ public class JSonWriter implements IValueTextWriter {
 
 		public IValue visitDateTime(IDateTime o) throws VisitorException {
 			if (typed || inNode > 0)
-				append("{\""+name+"\":\"datetime\",\"args\":[");
+				append("{\""+name+"\":\"datetime\",\""+args+"\":[");
 			append('\"');
 			SimpleDateFormat sd = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ"); 
 			append(sd.format(new Date(o.getInstant())));
