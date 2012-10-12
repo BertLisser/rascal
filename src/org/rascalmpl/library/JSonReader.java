@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -168,28 +169,25 @@ public class JSonReader extends AbstractBinaryReader {
 					reader.getPosition());
 		}
 		IValue[] a = new IValue[expected.getArity()];
-		Type[] b = new Type[expected.getArity()];
 		Iterator<Type> it = expected.iterator();
 		int i = 0;
 		if (it.hasNext()) {
 			Type typ = it.next();
 			IValue term = parse(reader, typ);
 			a[i] = term;
-			b[i] = term.getType();
 			if (debug)
-				System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
+				System.err.println("ParseTuple:" + a[i] + " " + i);
 			i++;
 		}
 		while (reader.getLastChar() == ',' && it.hasNext()) {
 			reader.readSkippingWS();
 			IValue term = parse(reader, it.next());
 			a[i] = term;
-			b[i] = term.getType();
 			if (debug)
-				System.err.println("ParseTuple:" + a[i] + " " + b[i] + " " + i);
+				System.err.println("ParseTuple:" + a[i] + " " + i);
 			i++;
 		}
-		IValue result = tf.tupleType(b).make(vf, a);
+		IValue result = vf.tuple(a);
 		if (debug)
 			System.err.println("result=" + result);
 		if (reader.getLastChar() != ']') {
@@ -521,16 +519,14 @@ public class JSonReader extends AbstractBinaryReader {
 
 	private IValue buildTerm(IList t, Type type) {
 		IValue[] a = new IValue[t.length()];
-		Type[] b = new Type[t.length()];
 		if (debug)
 			System.err.println("buildTermList");
 		for (int i = 0; i < t.length(); i++) {
 			if (debug)
 				System.err.println(t.get(i));
 			a[i] = buildTerm(t.get(i), t.getElementType());
-			b[i] = a[i].getType();
 			if (debug)
-				System.err.println("R:" + a[i] + " " + b[i]);
+				System.err.println("R:" + a[i]);
 		}
 		if (type.isTupleType())
 			return vf.tuple(a);
@@ -545,23 +541,19 @@ public class JSonReader extends AbstractBinaryReader {
 		if (debug)
 			System.err.println("buildTermSet" + " " + t.size());
 		IValue[] a = new IValue[t.size()];
-		Type[] b = new Type[t.size()];
 		Iterator<IValue> it = t.iterator();
 		for (int i = 0; i < t.size(); i++) {
 			a[i] = buildTerm(it.next(), type.isValueType() ? t.getElementType()
 					: type.getElementType());
-			b[i] = a[i].getType();
 		}
 		return t.isEmpty() ? vf.set(t.getElementType()) : vf.set(a);
 	}
 
 	private IValue buildTerm(ITuple t, Type type) {
 		IValue[] a = new IValue[t.arity()];
-		Type[] b = new Type[t.arity()];
 		for (int i = 0; i < t.arity(); i++) {
 			a[i] = buildTerm(t.get(i), type.isValueType() ? t.get(i).getType()
 					: type.getFieldType(i));
-			b[i] = a[i].getType();
 		}
 		return vf.tuple(a);
 	}
@@ -640,8 +632,6 @@ public class JSonReader extends AbstractBinaryReader {
 		}
 		if (funname.equals("set")) {
 			return a.length == 0 ? vf.set(tf.valueType()) : vf.set(a);
-			// return tf.setType(b.length > 0 ? b[0] : tf.valueType()).make(vf,
-			// a);
 		}
 		if (funname.equals("map")) {
 			IMapWriter w = tf.mapType(
@@ -666,6 +656,16 @@ public class JSonReader extends AbstractBinaryReader {
 			node = ts.lookupConstructor(type, funname, types);
 		if (node == null)
 			node = ts.lookupFirstConstructor(funname, types);
+		if (node == null) {
+			Set<Type> nodes = ts.lookupConstructors(funname);
+			Iterator<Type> it = nodes.iterator();
+			while (it.hasNext()) {
+				node = it.next();
+				if (types.getArity() == node.getArity())
+					break;
+				node = null;
+			}
+		}
 		System.err.println("node2=" + node);
 		if (node.isAliasType())
 			node = node.getAliased();
@@ -724,7 +724,6 @@ public class JSonReader extends AbstractBinaryReader {
 			return base.getElementType();
 		} else if (base.isMapType()) {
 			return base;
-			// return tf.tupleType(base.getKeyType(), base.getValueType());
 		} else if (base.isAbstractDataType()) {
 			return tf.tupleType(tf.stringType(), tf.valueType());
 		} else if (base.isValueType()) {
