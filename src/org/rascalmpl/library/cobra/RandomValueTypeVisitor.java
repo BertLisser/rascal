@@ -29,13 +29,17 @@ import org.eclipse.imp.pdb.facts.ISourceLocation;
 import org.eclipse.imp.pdb.facts.IString;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.eclipse.imp.pdb.facts.IValueFactory;
+import org.eclipse.imp.pdb.facts.impl.ExternalValue;
+import org.eclipse.imp.pdb.facts.type.ExternalType;
 import org.eclipse.imp.pdb.facts.type.ITypeVisitor;
 import org.eclipse.imp.pdb.facts.type.Type;
 import org.eclipse.imp.pdb.facts.type.TypeFactory;
+import org.rascalmpl.interpreter.control_exceptions.ContinueException;
 import org.rascalmpl.interpreter.control_exceptions.Throw;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.result.ICallableValue;
 import org.rascalmpl.interpreter.result.Result;
+import org.rascalmpl.interpreter.staticErrors.NotEnumerableError;
 
 public class RandomValueTypeVisitor implements ITypeVisitor<IValue> {
 
@@ -45,6 +49,12 @@ public class RandomValueTypeVisitor implements ITypeVisitor<IValue> {
 	private final ModuleEnvironment rootEnv;
 	private final int maxDepth;
 	private final HashMap<Type, ICallableValue> generators;
+
+	class FunctionValue extends ExternalValue {
+		FunctionValue(ExternalType t) {
+			super(t);
+		}
+	}
 
 	public RandomValueTypeVisitor(IValueFactory vf, ModuleEnvironment rootEnv,
 			int maxDepth, HashMap<Type, ICallableValue> generators) {
@@ -183,14 +193,19 @@ public class RandomValueTypeVisitor implements ITypeVisitor<IValue> {
 	public IValue visitDateTime(Type type) {
 		long maxDate = vf.date(3000, 12, 31).getInstant();
 		long n = stRandom.nextLong();
-        if (n<0) n=-n;
-		return vf.datetime(n%maxDate);
+		if (n < 0)
+			n = -n;
+		return vf.datetime(n % maxDate);
 	}
 
 	@Override
 	public IValue visitExternal(Type externalType) {
-		throw new Throw(vf.string("Can't handle ExternalType."),
-				(ISourceLocation) null, null);
+		// IValue r = vf.node(externalType.toString());
+		// System.err.println("QQQ:" + r);
+		// return r;
+		// throw new Throw(vf.string("Can't handle ExternalType."),
+		// (ISourceLocation) null, null);
+		throw new ContinueException("Can't handle ExternalType.");
 	}
 
 	@Override

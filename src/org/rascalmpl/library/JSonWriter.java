@@ -57,6 +57,7 @@ public class JSonWriter implements IValueTextWriter {
 
 	public void write(IValue value, java.io.Writer stream) throws IOException {
 		try {
+			System.err.println("JSonWriter:write:"+value);
 			value.accept(new Writer(stream));
 			stream.close();
 		} catch (VisitorException e) {
@@ -328,7 +329,8 @@ public class JSonWriter implements IValueTextWriter {
 		}
 
 		public IValue visitExternal(IExternalValue externalValue) {
-			// ignore external values
+			System.err.println("visitExternal:");
+			System.err.println("visitExternal:"+externalValue);
 			return externalValue;
 		}
 

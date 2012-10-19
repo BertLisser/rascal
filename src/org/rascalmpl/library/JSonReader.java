@@ -435,7 +435,6 @@ public class JSonReader extends AbstractBinaryReader {
 				throw new IOException("Premature EOF.");
 
 		} while (reader.getLastChar() != 'e');
-		// str.append('e'); /* true or false */
 		return str.toString();
 	}
 
@@ -560,9 +559,7 @@ public class JSonReader extends AbstractBinaryReader {
 
 	private IValue _buildTerm(IMap t, Type type) {
 		IValue[] a1 = new IValue[t.size()];
-		Type[] b1 = new Type[t.size()];
 		IValue[] a2 = new IValue[t.size()];
-		Type[] b2 = new Type[t.size()];
 		Type keyType = type.isMapType() ? type.getKeyType() : t.getType()
 				.getKeyType();
 		Type valueType = type.isMapType() ? type.getValueType() : t.getType()
@@ -570,12 +567,9 @@ public class JSonReader extends AbstractBinaryReader {
 		Iterator<IValue> it = t.iterator();
 		for (int i = 0; i < t.size(); i++) {
 			a1[i] = buildTerm(it.next(), keyType);
-			b1[i] = a1[i].getType();
 			a2[i] = buildTerm(t.get(a1[i]), valueType);
-			b2[i] = a2[i].getType();
 		}
-		IMapWriter w = tf.mapType(a1.length == 0 ? t.getKeyType() : b1[0],
-				a1.length == 0 ? t.getValueType() : b2[0]).writer(vf);
+		IMapWriter w = vf.mapWriter();
 		for (int i = 0; i < t.size(); i++) {
 			w.put(a1[i], a2[i]);
 		}
@@ -626,7 +620,6 @@ public class JSonReader extends AbstractBinaryReader {
 				final URI uri = new URI(((IString) a[0]).getValue());
 				return vf.sourceLocation(uri);
 			} catch (URISyntaxException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -634,10 +627,7 @@ public class JSonReader extends AbstractBinaryReader {
 			return a.length == 0 ? vf.set(tf.valueType()) : vf.set(a);
 		}
 		if (funname.equals("map")) {
-			IMapWriter w = tf.mapType(
-					a.length == 0 ? tf.valueType() : b[0].getFieldType(0),
-					a.length == 0 ? tf.valueType() : b[0].getFieldType(1))
-					.writer(vf);
+			IMapWriter w = vf.mapWriter();
 			for (int i = 0; i < a.length; i++) {
 				w.put(((ITuple) a[i]).get(0), ((ITuple) a[i]).get(1));
 			}
@@ -647,10 +637,9 @@ public class JSonReader extends AbstractBinaryReader {
 			return dateTime(((IString) a[0]).getValue());
 
 		Type types = tf.tupleType(b);
-		// if (debug)
-		System.err.println("lookupFirstConstructor:" + funname + " " + types
-				+ " " + type);
-		/* Local data types also searched - Monday */
+		if (debug)
+			System.err.println("lookupFirstConstructor:" + funname + " "
+					+ types + " " + type);
 		Type node = null;
 		if (type.isAbstractDataType())
 			node = ts.lookupConstructor(type, funname, types);
@@ -666,14 +655,19 @@ public class JSonReader extends AbstractBinaryReader {
 				node = null;
 			}
 		}
-		System.err.println("node2=" + node);
+		if (debug)
+			System.err.println("node2=" + node);
+		if (node == null) {
+			return vf.node(funname, a);
+		}
 		if (node.isAliasType())
 			node = node.getAliased();
 		return node.make(vf, a);
 	}
 
 	private IValue buildTerm(IValue t, Type type) {
-		// System.err.println("BuildTerm:" + t + " " + type);
+		if (debug)
+			System.err.println("BuildTerm:" + t + " " + type);
 		if (t instanceof IMap)
 			return buildTerm((IMap) t, type);
 		if (t instanceof IList)
@@ -739,7 +733,6 @@ public class JSonReader extends AbstractBinaryReader {
 		IValue term = parse(reader, elementType);
 		list.add(term);
 		while (reader.getLastChar() == ',') {
-			// reader.getLastChar();
 			reader.readSkippingWS();
 			term = parse(reader, elementType);
 			list.add(term);
@@ -803,16 +796,13 @@ public class JSonReader extends AbstractBinaryReader {
 			do {
 				last_char = read();
 			} while (Character.isWhitespace(last_char));
-
 			return last_char;
-
 		}
 
 		public int skipWS() throws IOException {
 			while (Character.isWhitespace(last_char)) {
 				last_char = read();
 			}
-
 			return last_char;
 		}
 

@@ -20,6 +20,7 @@ import org.eclipse.imp.pdb.facts.IValue;
 import org.eclipse.imp.pdb.facts.IValueFactory;
 import org.eclipse.imp.pdb.facts.type.Type;
 import org.rascalmpl.interpreter.IEvaluatorContext;
+import org.rascalmpl.interpreter.control_exceptions.ContinueException;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.result.AbstractFunction;
@@ -43,14 +44,13 @@ public class QuickCheck {
 
 		RandomValueTypeVisitor visitor = new RandomValueTypeVisitor(vf,
 				(ModuleEnvironment) env, depthLimit, generators);
-
 		IValue result = visitor.generate(type);
 		if (result == null) {
-			throw new IllegalArgumentException("No construction possible at this depth or less.");
+			throw new IllegalArgumentException(
+					"No construction possible at this depth or less.");
 		}
 		return result;
 	}
-
 
 	private boolean generatorExists(Type t) {
 		return generators.containsKey(t);
@@ -86,29 +86,35 @@ public class QuickCheck {
 
 		for (int i = 0; i < tries; i++) {
 			values = new IValue[formals.getArity()];
-
-			for (int n = 0; n < formals.getArity(); n++) {
-				values[n] = arbitrary(types[n], maxDepth, declEnv.getRoot(), vf);
+			try {
+				for (int n = 0; n < formals.getArity(); n++) {
+					values[n] = arbitrary(types[n], maxDepth,
+							declEnv.getRoot(), vf);
+				}
+			} catch (ContinueException e) {
+				continue;
 			}
-
 			try {
 				IValue result = function.call(types, values).getValue();
 				if (!((IBool) result).getValue()) {
-					out.println(formals.getArity() > 0 ? "failed with " + Arrays.toString(values) : "failed");
+					out.println(formals.getArity() > 0 ? "failed with "
+							+ Arrays.toString(values) : "failed");
 					return false;
 				} else if (verbose && formals.getArity() > 0) {
-					out.println((i + 1) + ": Checked with " + Arrays.toString(values) + ": true");
+					out.println((i + 1) + ": Checked with "
+							+ Arrays.toString(values) + ": true");
 				}
 			} catch (Throwable e) {
-				out.println(formals.getArity() > 0 ? "failed with " + Arrays.toString(values) : "failed");
+				out.println(formals.getArity() > 0 ? "failed with "
+						+ Arrays.toString(values) : "failed");
 				out.println(e.getMessage());
 				return false;
 			}
 
 		}
 
-		out.println(formals.getArity() > 0 ? "Not refuted after " + tries + " tries with maximum depth " + maxDepth
-				: "succeeded");
+		out.println(formals.getArity() > 0 ? "Not refuted after " + tries
+				+ " tries with maximum depth " + maxDepth : "succeeded");
 
 		return true;
 
