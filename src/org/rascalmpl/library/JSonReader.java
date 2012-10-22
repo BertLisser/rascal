@@ -18,6 +18,7 @@ import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -27,6 +28,7 @@ import java.net.URISyntaxException;
 
 import org.eclipse.imp.pdb.facts.IConstructor;
 import org.eclipse.imp.pdb.facts.IList;
+import org.eclipse.imp.pdb.facts.INode;
 import org.eclipse.imp.pdb.facts.IRelationWriter;
 import org.eclipse.imp.pdb.facts.ISet;
 import org.eclipse.imp.pdb.facts.ITuple;
@@ -54,9 +56,9 @@ public class JSonReader extends AbstractBinaryReader {
 	private TypeFactory tf = TypeFactory.getInstance();
 	private TypeStore ts;
 
-	private IString nameKey, argKey;
+	private IString nameKey, argKey, annoKey;
 
-	static final String name = "#name", args = "#args";
+	static final String name = "#name", args = "#args", annos = "#annos";
 
 	final boolean debug = true;
 
@@ -68,6 +70,7 @@ public class JSonReader extends AbstractBinaryReader {
 			System.err.println("read1:" + type);
 		nameKey = (IString) tf.stringType().make(vf, name);
 		argKey = (IString) tf.stringType().make(vf, args);
+		annoKey = (IString) tf.stringType().make(vf, annos);
 		int firstToken;
 		do {
 			firstToken = stream.read();
@@ -138,23 +141,6 @@ public class JSonReader extends AbstractBinaryReader {
 			break;
 		default:
 			throw new FactParseError("Illegal symbol", reader.getPosition());
-		}
-
-		if (reader.getLastChar() == '{') {
-			result = parseAnnotations(reader, result);
-		}
-		return result;
-	}
-
-	private IValue parseAnnotations(JSonStream reader, IValue result)
-			throws IOException {
-		if (reader.readSkippingWS() == '}') {
-			reader.readSkippingWS();
-		} else {
-			result = parseAnnos(reader, result);
-			if (reader.getLastChar() != '}') {
-				throw new FactParseError("'}' expected", reader.getPosition());
-			}
 		}
 		return result;
 	}
@@ -307,58 +293,6 @@ public class JSonReader extends AbstractBinaryReader {
 			}
 			reader.readSkippingWS();
 		}
-		return result;
-	}
-
-	private IValue parseAnnos(JSonStream reader, IValue result)
-			throws IOException {
-		result = parseAnno(reader, result);
-		while (reader.getLastChar() == ',') {
-			reader.readSkippingWS();
-			result = parseAnno(reader, result);
-		}
-
-		return result;
-	}
-
-	private IValue parseAnno(JSonStream reader, IValue result)
-			throws IOException {
-		if (reader.getLastChar() == '[') {
-			int c = reader.readSkippingWS();
-
-			if (c == '"') {
-				String key = parseStringLiteral(reader);
-				Type annoType = ts.getAnnotationType(result.getType(), key);
-
-				if (reader.readSkippingWS() == ',') {
-					reader.readSkippingWS();
-					IValue value = parse(reader, annoType);
-
-					if (result.getType().isConstructorType()
-							|| result.getType().isAbstractDataType()) {
-						result = ((IConstructor) result).setAnnotation(key,
-								value);
-					}
-
-					if (reader.getLastChar() != ']') {
-						throw new FactParseError("expected a ] but got a "
-								+ reader.getLastChar(), reader.getPosition());
-					}
-
-					reader.readSkippingWS();
-					return result;
-				}
-
-				throw new FactParseError(
-						"expected a comma before the value of the annotation",
-						reader.getPosition());
-			}
-
-			throw new FactParseError("expected a label for an annotation",
-					reader.getPosition());
-		}
-
-		// no annotations
 		return result;
 	}
 
@@ -576,7 +510,9 @@ public class JSonReader extends AbstractBinaryReader {
 		return w.done();
 	}
 
+	@SuppressWarnings("unchecked")
 	private IValue buildTerm(IMap t, Type type) {
+		INode result;
 		IValue key = t.get(nameKey);
 		if (debug && key != null)
 			System.err.println("builterm key=" + key);
@@ -607,15 +543,26 @@ public class JSonReader extends AbstractBinaryReader {
 				i++;
 			}
 		}
-		if (funname.equals("rat")) {
+		HashMap<String, IValue> map = new HashMap<String, IValue>();
+		IMap annoMap = (IMap) t.get(annoKey);
+		if (annoMap != null) {
+			Iterator<IValue> iterator = annoMap.iterator();		
+			while (iterator.hasNext()) {
+				IValue k = iterator.next();
+				String ky = ((IString) k).getValue();
+				IValue v = annoMap.get(k);
+				map.put(ky, v);
+			}
+		}
+		if (funname.equals("#rat")) {
 			int dn = ((IInteger) a[0]).intValue(), nm = ((IInteger) a[1])
 					.intValue();
 			return vf.rational(dn, nm);
 		}
-		if (funname.equals("tuple")) {
+		if (funname.equals("#tuple")) {
 			return vf.tuple(a);
 		}
-		if (funname.equals("loc")) {
+		if (funname.equals("#loc")) {
 			try {
 				final URI uri = new URI(((IString) a[0]).getValue());
 				return vf.sourceLocation(uri);
@@ -623,17 +570,17 @@ public class JSonReader extends AbstractBinaryReader {
 				e.printStackTrace();
 			}
 		}
-		if (funname.equals("set")) {
+		if (funname.equals("#set")) {
 			return a.length == 0 ? vf.set(tf.valueType()) : vf.set(a);
 		}
-		if (funname.equals("map")) {
+		if (funname.equals("#map")) {
 			IMapWriter w = vf.mapWriter();
 			for (int i = 0; i < a.length; i++) {
 				w.put(((ITuple) a[i]).get(0), ((ITuple) a[i]).get(1));
 			}
 			return w.done();
 		}
-		if (funname.equals("datetime"))
+		if (funname.equals("#datetime"))
 			return dateTime(((IString) a[0]).getValue());
 
 		Type types = tf.tupleType(b);
@@ -658,11 +605,15 @@ public class JSonReader extends AbstractBinaryReader {
 		if (debug)
 			System.err.println("node2=" + node);
 		if (node == null) {
-			return vf.node(funname, a);
+			result = vf.node(funname, a);
+		} else {
+			if (node.isAliasType())
+				node = node.getAliased();
+			result = (INode) node.make(vf, a);
 		}
-		if (node.isAliasType())
-			node = node.getAliased();
-		return node.make(vf, a);
+		if (annoMap != null)
+			result=result.setAnnotations(map);
+		return result;
 	}
 
 	private IValue buildTerm(IValue t, Type type) {

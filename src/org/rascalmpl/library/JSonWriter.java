@@ -52,12 +52,12 @@ public class JSonWriter implements IValueTextWriter {
 	static boolean typed = true;
 
 	static boolean debug = false;
-	
-	static final String name = "#name", args = "#args";
+
+	static final String name = "#name", args = "#args", annos = "#annos";
 
 	public void write(IValue value, java.io.Writer stream) throws IOException {
 		try {
-			System.err.println("JSonWriter:write:"+value);
+			System.err.println("JSonWriter:write:" + value);
 			value.accept(new Writer(stream));
 			stream.close();
 		} catch (VisitorException e) {
@@ -118,7 +118,7 @@ public class JSonWriter implements IValueTextWriter {
 		// what should we do here?
 		public IValue visitRational(IRational o) throws VisitorException {
 			if (typed || inNode > 0)
-				append("{\""+name+"\":\"rat\",\""+args+"\":[");
+				append("{\"" + name + "\":\"#rat\",\"" + args + "\":[");
 			else
 				append('[');
 			o.numerator();
@@ -161,7 +161,7 @@ public class JSonWriter implements IValueTextWriter {
 			if (debug)
 				System.err.println("VisitSet:" + o);
 			if (typed || inNode > 0)
-				append("{\""+name+"\":\"set\",\""+args+"\":");
+				append("{\"" + name + "\":\"#set\",\"" + args + "\":");
 			visitSequence(o.iterator());
 			if (typed || inNode > 0)
 				append('}');
@@ -174,7 +174,7 @@ public class JSonWriter implements IValueTextWriter {
 			if (debug)
 				System.err.println("VisitTuple:" + o);
 			if (typed || inNode > 0)
-				append("{\""+name+"\":\"tuple\",\""+args+"\":");
+				append("{\"" + name + "\":\"#tuple\",\"" + args + "\":");
 			visitSequence(o.iterator());
 			if (typed || inNode > 0)
 				append('}');
@@ -184,7 +184,7 @@ public class JSonWriter implements IValueTextWriter {
 		/* [expr,...] */
 		public IValue visitRelation(IRelation o) throws VisitorException {
 			if (typed || inNode > 0)
-				append("{\""+name+"\":\"set\",\""+args+"\":");
+				append("{\"" + name + "\":\"#set\",\"" + args + "\":");
 			visitSequence(o.iterator());
 			if (typed || inNode > 0)
 				append('}');
@@ -219,12 +219,13 @@ public class JSonWriter implements IValueTextWriter {
 				append('}');
 			} else {
 				if (typed || inNode > 0)
-					append("{\""+name+"\":\"map\",\""+args+"\":[");
+					append("{\"" + name + "\":\"#map\",\"" + args + "\":[");
 				else
 					append('[');
 				if (mapIterator.hasNext()) {
 					if (typed || inNode > 0)
-						append("{\""+name+"\":\"tuple\",\""+args+"\":[");
+						append("{\"" + name + "\":\"#tuple\",\"" + args
+								+ "\":[");
 					else
 						append('[');
 					IValue key = mapIterator.next();
@@ -238,7 +239,8 @@ public class JSonWriter implements IValueTextWriter {
 					while (mapIterator.hasNext()) {
 						append(',');
 						if (typed || inNode > 0)
-							append("{\""+name+"\":\"tuple\",\""+args+"\":[");
+							append("{\"" + name + "\":\"#tuple\",\"" + args
+									+ "\":[");
 						else
 							append('[');
 						key = mapIterator.next();
@@ -268,15 +270,15 @@ public class JSonWriter implements IValueTextWriter {
 		 */
 		public IValue visitNode(INode o) throws VisitorException {
 			Iterator<IValue> nodeIterator = o.iterator();
-			Map<String, IValue> annos = o.getAnnotations();
-			Iterator<String> annoIterator = annos.keySet().iterator();
+			Map<String, IValue> annotations = o.getAnnotations();
+			Iterator<String> annoIterator = annotations.keySet().iterator();
 			inNode++;
-			append("{\""+name+"\":");
+			append("{\"" + name + "\":");
 			append('\"');
 			append(o.getName().replaceAll("\"", "\\\\\"")
 					.replaceAll("\n", "\\\\n"));
 			append('\"');
-			append(",\""+args+"\":");
+			append(",\"" + args + "\":");
 			append('[');
 			if (nodeIterator.hasNext()) {
 				IValue v = nodeIterator.next();
@@ -288,21 +290,23 @@ public class JSonWriter implements IValueTextWriter {
 				}
 			}
 			append(']');
-			if (annoIterator.hasNext()) {
-				append(",\"annos\":");
-				append('[');
+		    if (annoIterator.hasNext()) {
+			     append(",\""+annos+"\":");
+//				// append('[');
 				append('{');
 				String key = annoIterator.next();
+				append("\""+key+"\"");
 				append(':');
-				annos.get(key).accept(this);
+				annotations.get(key).accept(this);
 				while (annoIterator.hasNext()) {
 					append(',');
 					key = annoIterator.next();
+					append("\""+key+"\"");
 					append(':');
-					annos.get(key).accept(this);
+					annotations.get(key).accept(this);
 				}
 				append('}');
-				append(']');
+//				// append(']');
 			}
 			append('}');
 			inNode--;
@@ -312,7 +316,7 @@ public class JSonWriter implements IValueTextWriter {
 		public IValue visitSourceLocation(ISourceLocation o)
 				throws VisitorException {
 			if (typed || inNode > 0)
-				append("{\""+name+"\":\"loc\",\""+args+"\":[");
+				append("{\"" + name + "\":\"#loc\",\"" + args + "\":[");
 			append("\"" + o.getURI().toString() + "\"");
 			if (typed || inNode > 0)
 				append("]}");
@@ -330,15 +334,16 @@ public class JSonWriter implements IValueTextWriter {
 
 		public IValue visitExternal(IExternalValue externalValue) {
 			System.err.println("visitExternal:");
-			System.err.println("visitExternal:"+externalValue);
+			System.err.println("visitExternal:" + externalValue);
 			return externalValue;
 		}
 
 		public IValue visitDateTime(IDateTime o) throws VisitorException {
 			if (typed || inNode > 0)
-				append("{\""+name+"\":\"datetime\",\""+args+"\":[");
+				append("{\"" + name + "\":\"#datetime\",\"" + args + "\":[");
 			append('\"');
-			SimpleDateFormat sd = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ"); 
+			SimpleDateFormat sd = new SimpleDateFormat(
+					"yyyy-MM-dd HH:mm:ss.SSSZ");
 			append(sd.format(new Date(o.getInstant())));
 			append('\"');
 			if (typed || inNode > 0)
