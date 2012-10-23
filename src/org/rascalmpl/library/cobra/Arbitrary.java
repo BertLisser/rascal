@@ -27,7 +27,6 @@ public class Arbitrary {
 	public Arbitrary(IValueFactory values) {
 		this.random = new Random();
 		this.values = values;
-
 	}
 
 	public IValue arbDateTime() {
