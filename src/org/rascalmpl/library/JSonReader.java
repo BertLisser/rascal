@@ -15,6 +15,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -23,21 +25,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
-import java.net.URI;
-import java.net.URISyntaxException;
 
-import org.eclipse.imp.pdb.facts.IConstructor;
+import org.eclipse.imp.pdb.facts.IInteger;
 import org.eclipse.imp.pdb.facts.IList;
-import org.eclipse.imp.pdb.facts.INode;
-import org.eclipse.imp.pdb.facts.IRelationWriter;
-import org.eclipse.imp.pdb.facts.ISet;
-import org.eclipse.imp.pdb.facts.ITuple;
 import org.eclipse.imp.pdb.facts.IListWriter;
 import org.eclipse.imp.pdb.facts.IMap;
 import org.eclipse.imp.pdb.facts.IMapWriter;
+import org.eclipse.imp.pdb.facts.INode;
+import org.eclipse.imp.pdb.facts.IRelationWriter;
+import org.eclipse.imp.pdb.facts.ISet;
 import org.eclipse.imp.pdb.facts.ISetWriter;
 import org.eclipse.imp.pdb.facts.IString;
-import org.eclipse.imp.pdb.facts.IInteger;
+import org.eclipse.imp.pdb.facts.ITuple;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.eclipse.imp.pdb.facts.IValueFactory;
 import org.eclipse.imp.pdb.facts.exceptions.FactParseError;
@@ -60,7 +59,7 @@ public class JSonReader extends AbstractBinaryReader {
 
 	static final String name = "#name", args = "#args", annos = "#annos";
 
-	final boolean debug = true;
+	final boolean debug = false;
 
 	public IValue read(IValueFactory factory, TypeStore store, Type type,
 			InputStream stream) throws FactParseError, IOException {
@@ -510,7 +509,7 @@ public class JSonReader extends AbstractBinaryReader {
 		return w.done();
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings("unused")
 	private IValue buildTerm(IMap t, Type type) {
 		INode result;
 		IValue key = t.get(nameKey);
