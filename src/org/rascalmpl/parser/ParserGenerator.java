@@ -42,7 +42,7 @@ public class ParserGenerator {
 	private final JavaBridge bridge;
 	private final IValueFactory vf;
 	private static final String packageName = "org.rascalmpl.java.parser.object";
-	private static final boolean debug = false;
+	private static final boolean debug = true;
 
 	public ParserGenerator(IRascalMonitor monitor, PrintWriter out, List<ClassLoader> loaders, IValueFactory factory) {
 		this.bridge = new JavaBridge(loaders, factory);
@@ -159,10 +159,16 @@ public class ParserGenerator {
 	
 	public IConstructor getExpandedGrammar(IRascalMonitor monitor, String main, IMap definition) {
 		IConstructor g = getGrammar(monitor, main, definition);
+		
+		monitor.event("Expanding keywords", 10);
 		g = (IConstructor) evaluator.call(monitor, "expandKeywords", g);
+		monitor.event("Adding regular productions",10);
 		g = (IConstructor) evaluator.call(monitor, "makeRegularStubs", g);
+		monitor.event("Expanding regulars", 10);
 		g = (IConstructor) evaluator.call(monitor, "expandRegularSymbols", g);
+		monitor.event("Expanding parametrized symbols");
 		g = (IConstructor) evaluator.call(monitor, "expandParameterizedSymbols", g);
+		monitor.event("Defining literals");
 		g = (IConstructor) evaluator.call(monitor, "literals", g);
 		return g;
 	}

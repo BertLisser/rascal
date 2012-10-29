@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -71,32 +72,6 @@ public abstract class Visibility extends AbstractAST {
   
 
   
-  public boolean isPublic() {
-    return false;
-  }
-
-  static public class Public extends Visibility {
-    // Production: sig("Public",[])
-  
-    
-  
-    public Public(IConstructor node ) {
-      super(node);
-      
-    }
-  
-    @Override
-    public boolean isPublic() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitVisibilityPublic(this);
-    }
-  
-    	
-  }
   public boolean isDefault() {
     return false;
   }
@@ -145,6 +120,32 @@ public abstract class Visibility extends AbstractAST {
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
       return visitor.visitVisibilityPrivate(this);
+    }
+  
+    	
+  }
+  public boolean isPublic() {
+    return false;
+  }
+
+  static public class Public extends Visibility {
+    // Production: sig("Public",[])
+  
+    
+  
+    public Public(IConstructor node ) {
+      super(node);
+      
+    }
+  
+    @Override
+    public boolean isPublic() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitVisibilityPublic(this);
     }
   
     	

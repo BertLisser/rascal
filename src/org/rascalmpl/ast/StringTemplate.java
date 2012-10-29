@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -28,11 +29,18 @@ public abstract class StringTemplate extends AbstractAST {
   }
 
   
-  public boolean hasPreStatsThen() {
+  public boolean hasConditions() {
     return false;
   }
 
-  public java.util.List<org.rascalmpl.ast.Statement> getPreStatsThen() {
+  public java.util.List<org.rascalmpl.ast.Expression> getConditions() {
+    throw new UnsupportedOperationException();
+  }
+  public boolean hasGenerators() {
+    return false;
+  }
+
+  public java.util.List<org.rascalmpl.ast.Expression> getGenerators() {
     throw new UnsupportedOperationException();
   }
   public boolean hasPostStats() {
@@ -49,11 +57,11 @@ public abstract class StringTemplate extends AbstractAST {
   public java.util.List<org.rascalmpl.ast.Statement> getPostStatsElse() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasThenString() {
+  public boolean hasPostStatsThen() {
     return false;
   }
 
-  public org.rascalmpl.ast.StringMiddle getThenString() {
+  public java.util.List<org.rascalmpl.ast.Statement> getPostStatsThen() {
     throw new UnsupportedOperationException();
   }
   public boolean hasPreStats() {
@@ -63,18 +71,18 @@ public abstract class StringTemplate extends AbstractAST {
   public java.util.List<org.rascalmpl.ast.Statement> getPreStats() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasElseString() {
-    return false;
-  }
-
-  public org.rascalmpl.ast.StringMiddle getElseString() {
-    throw new UnsupportedOperationException();
-  }
   public boolean hasPreStatsElse() {
     return false;
   }
 
   public java.util.List<org.rascalmpl.ast.Statement> getPreStatsElse() {
+    throw new UnsupportedOperationException();
+  }
+  public boolean hasPreStatsThen() {
+    return false;
+  }
+
+  public java.util.List<org.rascalmpl.ast.Statement> getPreStatsThen() {
     throw new UnsupportedOperationException();
   }
   public boolean hasCondition() {
@@ -84,13 +92,6 @@ public abstract class StringTemplate extends AbstractAST {
   public org.rascalmpl.ast.Expression getCondition() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasPostStatsThen() {
-    return false;
-  }
-
-  public java.util.List<org.rascalmpl.ast.Statement> getPostStatsThen() {
-    throw new UnsupportedOperationException();
-  }
   public boolean hasBody() {
     return false;
   }
@@ -98,18 +99,18 @@ public abstract class StringTemplate extends AbstractAST {
   public org.rascalmpl.ast.StringMiddle getBody() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasConditions() {
+  public boolean hasElseString() {
     return false;
   }
 
-  public java.util.List<org.rascalmpl.ast.Expression> getConditions() {
+  public org.rascalmpl.ast.StringMiddle getElseString() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasGenerators() {
+  public boolean hasThenString() {
     return false;
   }
 
-  public java.util.List<org.rascalmpl.ast.Expression> getGenerators() {
+  public org.rascalmpl.ast.StringMiddle getThenString() {
     throw new UnsupportedOperationException();
   }
 
@@ -155,6 +156,146 @@ public abstract class StringTemplate extends AbstractAST {
   
 
   
+  public boolean isDoWhile() {
+    return false;
+  }
+
+  static public class DoWhile extends StringTemplate {
+    // Production: sig("DoWhile",[arg("java.util.List\<org.rascalmpl.ast.Statement\>","preStats"),arg("org.rascalmpl.ast.StringMiddle","body"),arg("java.util.List\<org.rascalmpl.ast.Statement\>","postStats"),arg("org.rascalmpl.ast.Expression","condition")])
+  
+    
+    private final java.util.List<org.rascalmpl.ast.Statement> preStats;
+    private final org.rascalmpl.ast.StringMiddle body;
+    private final java.util.List<org.rascalmpl.ast.Statement> postStats;
+    private final org.rascalmpl.ast.Expression condition;
+  
+    public DoWhile(IConstructor node , java.util.List<org.rascalmpl.ast.Statement> preStats,  org.rascalmpl.ast.StringMiddle body,  java.util.List<org.rascalmpl.ast.Statement> postStats,  org.rascalmpl.ast.Expression condition) {
+      super(node);
+      
+      this.preStats = preStats;
+      this.body = body;
+      this.postStats = postStats;
+      this.condition = condition;
+    }
+  
+    @Override
+    public boolean isDoWhile() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitStringTemplateDoWhile(this);
+    }
+  
+    
+    @Override
+    public java.util.List<org.rascalmpl.ast.Statement> getPreStats() {
+      return this.preStats;
+    }
+  
+    @Override
+    public boolean hasPreStats() {
+      return true;
+    }
+    @Override
+    public org.rascalmpl.ast.StringMiddle getBody() {
+      return this.body;
+    }
+  
+    @Override
+    public boolean hasBody() {
+      return true;
+    }
+    @Override
+    public java.util.List<org.rascalmpl.ast.Statement> getPostStats() {
+      return this.postStats;
+    }
+  
+    @Override
+    public boolean hasPostStats() {
+      return true;
+    }
+    @Override
+    public org.rascalmpl.ast.Expression getCondition() {
+      return this.condition;
+    }
+  
+    @Override
+    public boolean hasCondition() {
+      return true;
+    }	
+  }
+  public boolean isFor() {
+    return false;
+  }
+
+  static public class For extends StringTemplate {
+    // Production: sig("For",[arg("java.util.List\<org.rascalmpl.ast.Expression\>","generators"),arg("java.util.List\<org.rascalmpl.ast.Statement\>","preStats"),arg("org.rascalmpl.ast.StringMiddle","body"),arg("java.util.List\<org.rascalmpl.ast.Statement\>","postStats")])
+  
+    
+    private final java.util.List<org.rascalmpl.ast.Expression> generators;
+    private final java.util.List<org.rascalmpl.ast.Statement> preStats;
+    private final org.rascalmpl.ast.StringMiddle body;
+    private final java.util.List<org.rascalmpl.ast.Statement> postStats;
+  
+    public For(IConstructor node , java.util.List<org.rascalmpl.ast.Expression> generators,  java.util.List<org.rascalmpl.ast.Statement> preStats,  org.rascalmpl.ast.StringMiddle body,  java.util.List<org.rascalmpl.ast.Statement> postStats) {
+      super(node);
+      
+      this.generators = generators;
+      this.preStats = preStats;
+      this.body = body;
+      this.postStats = postStats;
+    }
+  
+    @Override
+    public boolean isFor() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitStringTemplateFor(this);
+    }
+  
+    
+    @Override
+    public java.util.List<org.rascalmpl.ast.Expression> getGenerators() {
+      return this.generators;
+    }
+  
+    @Override
+    public boolean hasGenerators() {
+      return true;
+    }
+    @Override
+    public java.util.List<org.rascalmpl.ast.Statement> getPreStats() {
+      return this.preStats;
+    }
+  
+    @Override
+    public boolean hasPreStats() {
+      return true;
+    }
+    @Override
+    public org.rascalmpl.ast.StringMiddle getBody() {
+      return this.body;
+    }
+  
+    @Override
+    public boolean hasBody() {
+      return true;
+    }
+    @Override
+    public java.util.List<org.rascalmpl.ast.Statement> getPostStats() {
+      return this.postStats;
+    }
+  
+    @Override
+    public boolean hasPostStats() {
+      return true;
+    }	
+  }
   public boolean isIfThen() {
     return false;
   }
@@ -368,146 +509,6 @@ public abstract class StringTemplate extends AbstractAST {
   
     @Override
     public boolean hasCondition() {
-      return true;
-    }
-    @Override
-    public java.util.List<org.rascalmpl.ast.Statement> getPreStats() {
-      return this.preStats;
-    }
-  
-    @Override
-    public boolean hasPreStats() {
-      return true;
-    }
-    @Override
-    public org.rascalmpl.ast.StringMiddle getBody() {
-      return this.body;
-    }
-  
-    @Override
-    public boolean hasBody() {
-      return true;
-    }
-    @Override
-    public java.util.List<org.rascalmpl.ast.Statement> getPostStats() {
-      return this.postStats;
-    }
-  
-    @Override
-    public boolean hasPostStats() {
-      return true;
-    }	
-  }
-  public boolean isDoWhile() {
-    return false;
-  }
-
-  static public class DoWhile extends StringTemplate {
-    // Production: sig("DoWhile",[arg("java.util.List\<org.rascalmpl.ast.Statement\>","preStats"),arg("org.rascalmpl.ast.StringMiddle","body"),arg("java.util.List\<org.rascalmpl.ast.Statement\>","postStats"),arg("org.rascalmpl.ast.Expression","condition")])
-  
-    
-    private final java.util.List<org.rascalmpl.ast.Statement> preStats;
-    private final org.rascalmpl.ast.StringMiddle body;
-    private final java.util.List<org.rascalmpl.ast.Statement> postStats;
-    private final org.rascalmpl.ast.Expression condition;
-  
-    public DoWhile(IConstructor node , java.util.List<org.rascalmpl.ast.Statement> preStats,  org.rascalmpl.ast.StringMiddle body,  java.util.List<org.rascalmpl.ast.Statement> postStats,  org.rascalmpl.ast.Expression condition) {
-      super(node);
-      
-      this.preStats = preStats;
-      this.body = body;
-      this.postStats = postStats;
-      this.condition = condition;
-    }
-  
-    @Override
-    public boolean isDoWhile() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitStringTemplateDoWhile(this);
-    }
-  
-    
-    @Override
-    public java.util.List<org.rascalmpl.ast.Statement> getPreStats() {
-      return this.preStats;
-    }
-  
-    @Override
-    public boolean hasPreStats() {
-      return true;
-    }
-    @Override
-    public org.rascalmpl.ast.StringMiddle getBody() {
-      return this.body;
-    }
-  
-    @Override
-    public boolean hasBody() {
-      return true;
-    }
-    @Override
-    public java.util.List<org.rascalmpl.ast.Statement> getPostStats() {
-      return this.postStats;
-    }
-  
-    @Override
-    public boolean hasPostStats() {
-      return true;
-    }
-    @Override
-    public org.rascalmpl.ast.Expression getCondition() {
-      return this.condition;
-    }
-  
-    @Override
-    public boolean hasCondition() {
-      return true;
-    }	
-  }
-  public boolean isFor() {
-    return false;
-  }
-
-  static public class For extends StringTemplate {
-    // Production: sig("For",[arg("java.util.List\<org.rascalmpl.ast.Expression\>","generators"),arg("java.util.List\<org.rascalmpl.ast.Statement\>","preStats"),arg("org.rascalmpl.ast.StringMiddle","body"),arg("java.util.List\<org.rascalmpl.ast.Statement\>","postStats")])
-  
-    
-    private final java.util.List<org.rascalmpl.ast.Expression> generators;
-    private final java.util.List<org.rascalmpl.ast.Statement> preStats;
-    private final org.rascalmpl.ast.StringMiddle body;
-    private final java.util.List<org.rascalmpl.ast.Statement> postStats;
-  
-    public For(IConstructor node , java.util.List<org.rascalmpl.ast.Expression> generators,  java.util.List<org.rascalmpl.ast.Statement> preStats,  org.rascalmpl.ast.StringMiddle body,  java.util.List<org.rascalmpl.ast.Statement> postStats) {
-      super(node);
-      
-      this.generators = generators;
-      this.preStats = preStats;
-      this.body = body;
-      this.postStats = postStats;
-    }
-  
-    @Override
-    public boolean isFor() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitStringTemplateFor(this);
-    }
-  
-    
-    @Override
-    public java.util.List<org.rascalmpl.ast.Expression> getGenerators() {
-      return this.generators;
-    }
-  
-    @Override
-    public boolean hasGenerators() {
       return true;
     }
     @Override

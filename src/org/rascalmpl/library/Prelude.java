@@ -37,6 +37,10 @@ import java.io.StringReader;
 import java.lang.ref.WeakReference;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
+import java.nio.charset.Charset;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -859,14 +863,25 @@ public class Prelude {
 		} 
 	}
 	
+	public ISet charsets() {
+		ISetWriter w = values.setWriter();
+		for (String s : Charset.availableCharsets().keySet()) {
+			w.insert(values.string(s));
+		}
+		return w.done();
+	}
 	
 	public IValue readFile(ISourceLocation sloc, IEvaluatorContext ctx){
+	  return readFileEnc(sloc, values.string("UTF8"), ctx);	
+	}
+	
+	public IValue readFileEnc(ISourceLocation sloc, IString charset, IEvaluatorContext ctx){
 		StringBuilder result = new StringBuilder(1024 * 1024);
 		
-		InputStream in = null;
+		InputStreamReader in = null;
 		try{
-			in = ctx.getResolverRegistry().getInputStream(sloc.getURI());
-			byte[] buf = new byte[4096];
+			in = new InputStreamReader(ctx.getResolverRegistry().getInputStream(sloc.getURI()), charset.getValue());
+			char[] buf = new char[4096];
 			int count;
 
 			while((count = in.read(buf)) != -1){
@@ -895,22 +910,72 @@ public class Prelude {
 		}
 	}
 	
+	public IValue md5HashFile(ISourceLocation sloc, IEvaluatorContext ctx){
+		StringBuilder result = new StringBuilder(1024 * 1024);
+		
+		InputStream in = null;
+		try{
+			in = ctx.getResolverRegistry().getInputStream(sloc.getURI());
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			in = new DigestInputStream(in, md);
+			byte[] buf = new byte[4096];
+			int count;
+
+			while((count = in.read(buf)) != -1){
+				result.append(new java.lang.String(buf, 0, count));
+			}
+			
+			return values.string(new String(md.digest()));
+		}catch(FileNotFoundException fnfex){
+			throw RuntimeExceptionFactory.pathNotFound(sloc, null, null);
+		}catch(IOException ioex){
+			throw RuntimeExceptionFactory.io(values.string(ioex.getMessage()), null, null);
+		} catch (NoSuchAlgorithmException e) {
+			throw RuntimeExceptionFactory.io(values.string("Cannot load MD5 digest algorithm"), null, null);
+		}finally{
+			if(in != null){
+				try{
+					in.close();
+				}catch(IOException ioex){
+					throw RuntimeExceptionFactory.io(values.string(ioex.getMessage()), null, null);
+				}
+			}
+		}
+	}
+
 	public void writeFile(ISourceLocation sloc, IList V, IEvaluatorContext ctx) {
 		writeFile(sloc, V, false, ctx);
 	}
 	
+	public void writeFileEnc(ISourceLocation sloc, IString charset, IList V, IEvaluatorContext ctx) {
+		writeFileEnc(sloc, charset, V, false, ctx);
+	}
+	
 	private void writeFile(ISourceLocation sloc, IList V, boolean append, IEvaluatorContext ctx){
-		OutputStream out = null;
+		 writeFileEnc(sloc, values.string("UTF8"), V, append, ctx);
+	}
+	
+	public IBool canEncode(IString charset) {
+		return values.bool(Charset.forName(charset.getValue()).canEncode());
+	}
+	
+	private void writeFileEnc(ISourceLocation sloc, IString charset, IList V, boolean append, IEvaluatorContext ctx){
+		OutputStreamWriter out = null;
+		
+		if (!Charset.forName(charset.getValue()).canEncode()) {
+		    throw RuntimeExceptionFactory.illegalArgument(charset, null, null);
+		}
+		
 		try{
-			out = ctx.getResolverRegistry().getOutputStream(sloc.getURI(), append);
+			out = new OutputStreamWriter(ctx.getResolverRegistry().getOutputStream(sloc.getURI(), append), charset.getValue());
 			
 			for(IValue elem : V){
-				if (elem.getType().isStringType()){
-					out.write(((IString) elem).getValue().toString().getBytes());
+				if (elem.getType().isStringType()) {
+					out.append(((IString) elem).getValue());
 				}else if (elem.getType().isSubtypeOf(Factory.Tree)) {
-					out.write(TreeAdapter.yield((IConstructor) elem).getBytes());
+					out.append(TreeAdapter.yield((IConstructor) elem));
 				}else{
-					out.write(elem.toString().getBytes());
+					out.append(elem.toString());
 				}
 			}
 		}catch(FileNotFoundException fnfex){
@@ -935,12 +1000,16 @@ public class Prelude {
 	}
 	
 	public IList readFileLines(ISourceLocation sloc, IEvaluatorContext ctx){
+	  return readFileLinesEnc(sloc, values.string("UTF8"), ctx);	
+	}
+	
+	public IList readFileLinesEnc(ISourceLocation sloc, IString charset, IEvaluatorContext ctx){
 		IListWriter w = types.listType(types.stringType()).writer(values);
 		
 		BufferedReader in = null;
 		try{
-			InputStream stream = ctx.getResolverRegistry().getInputStream(sloc.getURI());
-			in = new BufferedReader(new InputStreamReader(stream));
+			InputStreamReader stream = new InputStreamReader(ctx.getResolverRegistry().getInputStream(sloc.getURI()),charset.getValue());
+			in = new BufferedReader(stream);
 			java.lang.String line;
 			
 			int i = 0;
@@ -1047,6 +1116,43 @@ public class Prelude {
 		IValue[] tmpArr = new IValue[l.length()];
 		for(int i = 0 ; i < l.length() ; i++){
 			tmpArr[i] = l.get(i);
+		}
+		Comparator<IValue> cmpj = new Comparator<IValue>() {
+
+			@Override
+			public int compare(IValue lhs, IValue rhs) {
+				if(lhs == rhs){
+					return 0;
+				} else {
+					argArr[0] = lhs;
+					argArr[1] = rhs;
+					Result<IValue> res = cmp.call(typeArr,argArr);
+					boolean leq = ((IBool)res.getValue()).getValue();
+					return leq ? -1 : 1;
+				}
+			}
+		};
+		Arrays.sort(tmpArr,cmpj);
+		
+		IListWriter writer = values.listWriter(l.getElementType());
+		for(IValue v : tmpArr){
+			writer.append(v);
+		}
+		return writer.done();
+	}
+	
+	public IList sort(ISet l, IValue cmpv){
+		final ICallableValue cmp = (ICallableValue) cmpv;
+		final IValue[] argArr = new IValue[2]; // this creates less garbage
+		FunctionType ftype = (FunctionType) cmpv.getType();
+		Type argTypes = ftype.getArgumentTypes();
+		final Type[] typeArr = 
+				new Type[] {argTypes.getFieldType(0),argTypes.getFieldType(1)};
+		
+		IValue[] tmpArr = new IValue[l.size()];
+		int i = 0;
+		for(IValue elem : l){
+			tmpArr[i++] = elem;
 		}
 		Comparator<IValue> cmpj = new Comparator<IValue>() {
 
@@ -2202,6 +2308,10 @@ public class Prelude {
 	
 	public IString capitalize(IString src) {
 		return values.string(WordUtils.capitalize(src.getValue()));
+	}
+	
+	public IString uncapitalize(IString src) {
+		return values.string(WordUtils.uncapitalize(src.getValue()));
 	}
 	
 	public IList split(IString sep, IString src) {

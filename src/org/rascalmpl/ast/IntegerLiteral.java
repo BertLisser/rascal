@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -28,11 +29,11 @@ public abstract class IntegerLiteral extends AbstractAST {
   }
 
   
-  public boolean hasOctal() {
+  public boolean hasDecimal() {
     return false;
   }
 
-  public org.rascalmpl.ast.OctalIntegerLiteral getOctal() {
+  public org.rascalmpl.ast.DecimalIntegerLiteral getDecimal() {
     throw new UnsupportedOperationException();
   }
   public boolean hasHex() {
@@ -42,11 +43,11 @@ public abstract class IntegerLiteral extends AbstractAST {
   public org.rascalmpl.ast.HexIntegerLiteral getHex() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasDecimal() {
+  public boolean hasOctal() {
     return false;
   }
 
-  public org.rascalmpl.ast.DecimalIntegerLiteral getDecimal() {
+  public org.rascalmpl.ast.OctalIntegerLiteral getOctal() {
     throw new UnsupportedOperationException();
   }
 
@@ -92,40 +93,40 @@ public abstract class IntegerLiteral extends AbstractAST {
   
 
   
-  public boolean isOctalIntegerLiteral() {
+  public boolean isDecimalIntegerLiteral() {
     return false;
   }
 
-  static public class OctalIntegerLiteral extends IntegerLiteral {
-    // Production: sig("OctalIntegerLiteral",[arg("org.rascalmpl.ast.OctalIntegerLiteral","octal")])
+  static public class DecimalIntegerLiteral extends IntegerLiteral {
+    // Production: sig("DecimalIntegerLiteral",[arg("org.rascalmpl.ast.DecimalIntegerLiteral","decimal")])
   
     
-    private final org.rascalmpl.ast.OctalIntegerLiteral octal;
+    private final org.rascalmpl.ast.DecimalIntegerLiteral decimal;
   
-    public OctalIntegerLiteral(IConstructor node , org.rascalmpl.ast.OctalIntegerLiteral octal) {
+    public DecimalIntegerLiteral(IConstructor node , org.rascalmpl.ast.DecimalIntegerLiteral decimal) {
       super(node);
       
-      this.octal = octal;
+      this.decimal = decimal;
     }
   
     @Override
-    public boolean isOctalIntegerLiteral() { 
+    public boolean isDecimalIntegerLiteral() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitIntegerLiteralOctalIntegerLiteral(this);
+      return visitor.visitIntegerLiteralDecimalIntegerLiteral(this);
     }
   
     
     @Override
-    public org.rascalmpl.ast.OctalIntegerLiteral getOctal() {
-      return this.octal;
+    public org.rascalmpl.ast.DecimalIntegerLiteral getDecimal() {
+      return this.decimal;
     }
   
     @Override
-    public boolean hasOctal() {
+    public boolean hasDecimal() {
       return true;
     }	
   }
@@ -166,40 +167,40 @@ public abstract class IntegerLiteral extends AbstractAST {
       return true;
     }	
   }
-  public boolean isDecimalIntegerLiteral() {
+  public boolean isOctalIntegerLiteral() {
     return false;
   }
 
-  static public class DecimalIntegerLiteral extends IntegerLiteral {
-    // Production: sig("DecimalIntegerLiteral",[arg("org.rascalmpl.ast.DecimalIntegerLiteral","decimal")])
+  static public class OctalIntegerLiteral extends IntegerLiteral {
+    // Production: sig("OctalIntegerLiteral",[arg("org.rascalmpl.ast.OctalIntegerLiteral","octal")])
   
     
-    private final org.rascalmpl.ast.DecimalIntegerLiteral decimal;
+    private final org.rascalmpl.ast.OctalIntegerLiteral octal;
   
-    public DecimalIntegerLiteral(IConstructor node , org.rascalmpl.ast.DecimalIntegerLiteral decimal) {
+    public OctalIntegerLiteral(IConstructor node , org.rascalmpl.ast.OctalIntegerLiteral octal) {
       super(node);
       
-      this.decimal = decimal;
+      this.octal = octal;
     }
   
     @Override
-    public boolean isDecimalIntegerLiteral() { 
+    public boolean isOctalIntegerLiteral() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitIntegerLiteralDecimalIntegerLiteral(this);
+      return visitor.visitIntegerLiteralOctalIntegerLiteral(this);
     }
   
     
     @Override
-    public org.rascalmpl.ast.DecimalIntegerLiteral getDecimal() {
-      return this.decimal;
+    public org.rascalmpl.ast.OctalIntegerLiteral getOctal() {
+      return this.octal;
     }
   
     @Override
-    public boolean hasDecimal() {
+    public boolean hasOctal() {
       return true;
     }	
   }

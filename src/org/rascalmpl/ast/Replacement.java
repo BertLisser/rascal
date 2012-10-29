@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -28,18 +29,18 @@ public abstract class Replacement extends AbstractAST {
   }
 
   
-  public boolean hasReplacementExpression() {
-    return false;
-  }
-
-  public org.rascalmpl.ast.Expression getReplacementExpression() {
-    throw new UnsupportedOperationException();
-  }
   public boolean hasConditions() {
     return false;
   }
 
   public java.util.List<org.rascalmpl.ast.Expression> getConditions() {
+    throw new UnsupportedOperationException();
+  }
+  public boolean hasReplacementExpression() {
+    return false;
+  }
+
+  public org.rascalmpl.ast.Expression getReplacementExpression() {
     throw new UnsupportedOperationException();
   }
 
@@ -85,43 +86,6 @@ public abstract class Replacement extends AbstractAST {
   
 
   
-  public boolean isUnconditional() {
-    return false;
-  }
-
-  static public class Unconditional extends Replacement {
-    // Production: sig("Unconditional",[arg("org.rascalmpl.ast.Expression","replacementExpression")])
-  
-    
-    private final org.rascalmpl.ast.Expression replacementExpression;
-  
-    public Unconditional(IConstructor node , org.rascalmpl.ast.Expression replacementExpression) {
-      super(node);
-      
-      this.replacementExpression = replacementExpression;
-    }
-  
-    @Override
-    public boolean isUnconditional() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitReplacementUnconditional(this);
-    }
-  
-    
-    @Override
-    public org.rascalmpl.ast.Expression getReplacementExpression() {
-      return this.replacementExpression;
-    }
-  
-    @Override
-    public boolean hasReplacementExpression() {
-      return true;
-    }	
-  }
   public boolean isConditional() {
     return false;
   }
@@ -167,6 +131,43 @@ public abstract class Replacement extends AbstractAST {
   
     @Override
     public boolean hasConditions() {
+      return true;
+    }	
+  }
+  public boolean isUnconditional() {
+    return false;
+  }
+
+  static public class Unconditional extends Replacement {
+    // Production: sig("Unconditional",[arg("org.rascalmpl.ast.Expression","replacementExpression")])
+  
+    
+    private final org.rascalmpl.ast.Expression replacementExpression;
+  
+    public Unconditional(IConstructor node , org.rascalmpl.ast.Expression replacementExpression) {
+      super(node);
+      
+      this.replacementExpression = replacementExpression;
+    }
+  
+    @Override
+    public boolean isUnconditional() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitReplacementUnconditional(this);
+    }
+  
+    
+    @Override
+    public org.rascalmpl.ast.Expression getReplacementExpression() {
+      return this.replacementExpression;
+    }
+  
+    @Override
+    public boolean hasReplacementExpression() {
       return true;
     }	
   }

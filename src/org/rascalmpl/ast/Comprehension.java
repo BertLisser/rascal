@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -28,18 +29,18 @@ public abstract class Comprehension extends AbstractAST {
   }
 
   
+  public boolean hasGenerators() {
+    return false;
+  }
+
+  public java.util.List<org.rascalmpl.ast.Expression> getGenerators() {
+    throw new UnsupportedOperationException();
+  }
   public boolean hasResults() {
     return false;
   }
 
   public java.util.List<org.rascalmpl.ast.Expression> getResults() {
-    throw new UnsupportedOperationException();
-  }
-  public boolean hasTo() {
-    return false;
-  }
-
-  public org.rascalmpl.ast.Expression getTo() {
     throw new UnsupportedOperationException();
   }
   public boolean hasFrom() {
@@ -49,11 +50,11 @@ public abstract class Comprehension extends AbstractAST {
   public org.rascalmpl.ast.Expression getFrom() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasGenerators() {
+  public boolean hasTo() {
     return false;
   }
 
-  public java.util.List<org.rascalmpl.ast.Expression> getGenerators() {
+  public org.rascalmpl.ast.Expression getTo() {
     throw new UnsupportedOperationException();
   }
 
@@ -99,18 +100,18 @@ public abstract class Comprehension extends AbstractAST {
   
 
   
-  public boolean isSet() {
+  public boolean isList() {
     return false;
   }
 
-  static public class Set extends Comprehension {
-    // Production: sig("Set",[arg("java.util.List\<org.rascalmpl.ast.Expression\>","results"),arg("java.util.List\<org.rascalmpl.ast.Expression\>","generators")])
+  static public class List extends Comprehension {
+    // Production: sig("List",[arg("java.util.List\<org.rascalmpl.ast.Expression\>","results"),arg("java.util.List\<org.rascalmpl.ast.Expression\>","generators")])
   
     
     private final java.util.List<org.rascalmpl.ast.Expression> results;
     private final java.util.List<org.rascalmpl.ast.Expression> generators;
   
-    public Set(IConstructor node , java.util.List<org.rascalmpl.ast.Expression> results,  java.util.List<org.rascalmpl.ast.Expression> generators) {
+    public List(IConstructor node , java.util.List<org.rascalmpl.ast.Expression> results,  java.util.List<org.rascalmpl.ast.Expression> generators) {
       super(node);
       
       this.results = results;
@@ -118,13 +119,13 @@ public abstract class Comprehension extends AbstractAST {
     }
   
     @Override
-    public boolean isSet() { 
+    public boolean isList() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitComprehensionSet(this);
+      return visitor.visitComprehensionList(this);
     }
   
     
@@ -206,18 +207,18 @@ public abstract class Comprehension extends AbstractAST {
       return true;
     }	
   }
-  public boolean isList() {
+  public boolean isSet() {
     return false;
   }
 
-  static public class List extends Comprehension {
-    // Production: sig("List",[arg("java.util.List\<org.rascalmpl.ast.Expression\>","results"),arg("java.util.List\<org.rascalmpl.ast.Expression\>","generators")])
+  static public class Set extends Comprehension {
+    // Production: sig("Set",[arg("java.util.List\<org.rascalmpl.ast.Expression\>","results"),arg("java.util.List\<org.rascalmpl.ast.Expression\>","generators")])
   
     
     private final java.util.List<org.rascalmpl.ast.Expression> results;
     private final java.util.List<org.rascalmpl.ast.Expression> generators;
   
-    public List(IConstructor node , java.util.List<org.rascalmpl.ast.Expression> results,  java.util.List<org.rascalmpl.ast.Expression> generators) {
+    public Set(IConstructor node , java.util.List<org.rascalmpl.ast.Expression> results,  java.util.List<org.rascalmpl.ast.Expression> generators) {
       super(node);
       
       this.results = results;
@@ -225,13 +226,13 @@ public abstract class Comprehension extends AbstractAST {
     }
   
     @Override
-    public boolean isList() { 
+    public boolean isSet() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitComprehensionList(this);
+      return visitor.visitComprehensionSet(this);
     }
   
     

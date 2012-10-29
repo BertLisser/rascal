@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -85,43 +86,6 @@ public abstract class Case extends AbstractAST {
   
 
   
-  public boolean isPatternWithAction() {
-    return false;
-  }
-
-  static public class PatternWithAction extends Case {
-    // Production: sig("PatternWithAction",[arg("org.rascalmpl.ast.PatternWithAction","patternWithAction")])
-  
-    
-    private final org.rascalmpl.ast.PatternWithAction patternWithAction;
-  
-    public PatternWithAction(IConstructor node , org.rascalmpl.ast.PatternWithAction patternWithAction) {
-      super(node);
-      
-      this.patternWithAction = patternWithAction;
-    }
-  
-    @Override
-    public boolean isPatternWithAction() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitCasePatternWithAction(this);
-    }
-  
-    
-    @Override
-    public org.rascalmpl.ast.PatternWithAction getPatternWithAction() {
-      return this.patternWithAction;
-    }
-  
-    @Override
-    public boolean hasPatternWithAction() {
-      return true;
-    }	
-  }
   public boolean isDefault() {
     return false;
   }
@@ -156,6 +120,43 @@ public abstract class Case extends AbstractAST {
   
     @Override
     public boolean hasStatement() {
+      return true;
+    }	
+  }
+  public boolean isPatternWithAction() {
+    return false;
+  }
+
+  static public class PatternWithAction extends Case {
+    // Production: sig("PatternWithAction",[arg("org.rascalmpl.ast.PatternWithAction","patternWithAction")])
+  
+    
+    private final org.rascalmpl.ast.PatternWithAction patternWithAction;
+  
+    public PatternWithAction(IConstructor node , org.rascalmpl.ast.PatternWithAction patternWithAction) {
+      super(node);
+      
+      this.patternWithAction = patternWithAction;
+    }
+  
+    @Override
+    public boolean isPatternWithAction() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitCasePatternWithAction(this);
+    }
+  
+    
+    @Override
+    public org.rascalmpl.ast.PatternWithAction getPatternWithAction() {
+      return this.patternWithAction;
+    }
+  
+    @Override
+    public boolean hasPatternWithAction() {
       return true;
     }	
   }

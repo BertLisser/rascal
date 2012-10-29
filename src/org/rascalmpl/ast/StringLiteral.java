@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -42,18 +43,18 @@ public abstract class StringLiteral extends AbstractAST {
   public org.rascalmpl.ast.PreStringChars getPre() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasTail() {
-    return false;
-  }
-
-  public org.rascalmpl.ast.StringTail getTail() {
-    throw new UnsupportedOperationException();
-  }
   public boolean hasConstant() {
     return false;
   }
 
   public org.rascalmpl.ast.StringConstant getConstant() {
+    throw new UnsupportedOperationException();
+  }
+  public boolean hasTail() {
+    return false;
+  }
+
+  public org.rascalmpl.ast.StringTail getTail() {
     throw new UnsupportedOperationException();
   }
   public boolean hasTemplate() {
@@ -106,43 +107,6 @@ public abstract class StringLiteral extends AbstractAST {
   
 
   
-  public boolean isNonInterpolated() {
-    return false;
-  }
-
-  static public class NonInterpolated extends StringLiteral {
-    // Production: sig("NonInterpolated",[arg("org.rascalmpl.ast.StringConstant","constant")])
-  
-    
-    private final org.rascalmpl.ast.StringConstant constant;
-  
-    public NonInterpolated(IConstructor node , org.rascalmpl.ast.StringConstant constant) {
-      super(node);
-      
-      this.constant = constant;
-    }
-  
-    @Override
-    public boolean isNonInterpolated() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitStringLiteralNonInterpolated(this);
-    }
-  
-    
-    @Override
-    public org.rascalmpl.ast.StringConstant getConstant() {
-      return this.constant;
-    }
-  
-    @Override
-    public boolean hasConstant() {
-      return true;
-    }	
-  }
   public boolean isInterpolated() {
     return false;
   }
@@ -199,6 +163,43 @@ public abstract class StringLiteral extends AbstractAST {
   
     @Override
     public boolean hasTail() {
+      return true;
+    }	
+  }
+  public boolean isNonInterpolated() {
+    return false;
+  }
+
+  static public class NonInterpolated extends StringLiteral {
+    // Production: sig("NonInterpolated",[arg("org.rascalmpl.ast.StringConstant","constant")])
+  
+    
+    private final org.rascalmpl.ast.StringConstant constant;
+  
+    public NonInterpolated(IConstructor node , org.rascalmpl.ast.StringConstant constant) {
+      super(node);
+      
+      this.constant = constant;
+    }
+  
+    @Override
+    public boolean isNonInterpolated() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitStringLiteralNonInterpolated(this);
+    }
+  
+    
+    @Override
+    public org.rascalmpl.ast.StringConstant getConstant() {
+      return this.constant;
+    }
+  
+    @Override
+    public boolean hasConstant() {
       return true;
     }	
   }

@@ -68,6 +68,7 @@ import org.rascalmpl.interpreter.control_exceptions.Insert;
 import org.rascalmpl.interpreter.control_exceptions.InterruptException;
 import org.rascalmpl.interpreter.control_exceptions.Return;
 import org.rascalmpl.interpreter.control_exceptions.Throw;
+import org.rascalmpl.interpreter.debug.DebugUpdater;
 import org.rascalmpl.interpreter.debug.IRascalSuspendTrigger;
 import org.rascalmpl.interpreter.debug.IRascalSuspendTriggerListener;
 import org.rascalmpl.interpreter.env.Environment;
@@ -109,7 +110,8 @@ import org.rascalmpl.parser.gtd.io.InputConverter;
 import org.rascalmpl.parser.gtd.result.action.IActionExecutor;
 import org.rascalmpl.parser.gtd.result.out.DefaultNodeFlattener;
 import org.rascalmpl.parser.uptr.UPTRNodeFactory;
-import org.rascalmpl.parser.uptr.action.BootRascalActionExecutor;
+import org.rascalmpl.parser.uptr.action.NoActionExecutor;
+import org.rascalmpl.parser.uptr.action.NoActionExecutor;
 import org.rascalmpl.parser.uptr.action.RascalFunctionActionExecutor;
 import org.rascalmpl.parser.uptr.recovery.Recoverer;
 import org.rascalmpl.uri.CWDURIResolver;
@@ -120,6 +122,7 @@ import org.rascalmpl.uri.HttpURIResolver;
 import org.rascalmpl.uri.JarURIResolver;
 import org.rascalmpl.uri.TempURIResolver;
 import org.rascalmpl.uri.URIResolverRegistry;
+import org.rascalmpl.uri.URIUtil;
 import org.rascalmpl.values.uptr.SymbolAdapter;
 import org.rascalmpl.values.uptr.TreeAdapter;
 
@@ -554,7 +557,7 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 	public IConstructor parseObject(IRascalMonitor monitor, IConstructor startSort, IMap robust, String input){
 		IRascalMonitor old = setMonitor(monitor);
 		try{
-			return parseObject(startSort, robust, URI.create("file://-"), input.toCharArray());
+			return parseObject(startSort, robust, URIUtil.invalidURI(), input.toCharArray());
 		}finally{
 			setMonitor(old);
 		}
@@ -848,10 +851,10 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 		IConstructor tree;
 		
 		if (noBacktickOutsideStringConstant(command)) {
-			IActionExecutor<IConstructor> actionExecutor = new BootRascalActionExecutor();
+			IActionExecutor<IConstructor> actionExecutor = new NoActionExecutor();
 			tree = (IConstructor) new RascalRascal().parse(Parser.START_COMMAND, location, command.toCharArray(), actionExecutor, new DefaultNodeFlattener<IConstructor, IConstructor, ISourceLocation>(), new UPTRNodeFactory());
 		} else {
-			IActionExecutor<IConstructor> actionExecutor =  new BootRascalActionExecutor();
+			IActionExecutor<IConstructor> actionExecutor =  new NoActionExecutor();
 			IGTD<IConstructor, IConstructor, ISourceLocation> rp = getRascalParser(getCurrentModuleEnvironment(), location);
 			tree = (IConstructor) rp.parse(Parser.START_COMMAND, location, command.toCharArray(), actionExecutor, new DefaultNodeFlattener<IConstructor, IConstructor, ISourceLocation>(), new UPTRNodeFactory());
 		}
@@ -871,10 +874,10 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 		IConstructor tree;
 		
 		if (noBacktickOutsideStringConstant(command)) {
-			IActionExecutor<IConstructor> actionExecutor = new BootRascalActionExecutor();
+			IActionExecutor<IConstructor> actionExecutor = new NoActionExecutor();
 			tree = (IConstructor) new RascalRascal().parse(Parser.START_COMMANDS, location, command.toCharArray(), actionExecutor, new DefaultNodeFlattener<IConstructor, IConstructor, ISourceLocation>(), new UPTRNodeFactory());
 		} else {
-			IActionExecutor<IConstructor> actionExecutor =  new BootRascalActionExecutor();
+			IActionExecutor<IConstructor> actionExecutor =  new NoActionExecutor();
 			IGTD<IConstructor, IConstructor, ISourceLocation> rp = getRascalParser(getCurrentModuleEnvironment(), location);
 			tree = (IConstructor) rp.parse(Parser.START_COMMANDS, location, command.toCharArray(), actionExecutor, new DefaultNodeFlattener<IConstructor, IConstructor, ISourceLocation>(), new UPTRNodeFactory());
 		}
@@ -924,11 +927,11 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 		__setInterrupt(false);
 		
 		if (!command.contains("`")) {
-			IActionExecutor<IConstructor> actionExecutor =  new BootRascalActionExecutor();
+			IActionExecutor<IConstructor> actionExecutor =  new NoActionExecutor();
 			return (IConstructor) new RascalRascal().parse(Parser.START_COMMAND, location, command.toCharArray(), actionExecutor, new DefaultNodeFlattener<IConstructor, IConstructor, ISourceLocation>(), new UPTRNodeFactory());
 		}
 		
-		IActionExecutor<IConstructor> actionExecutor =  new BootRascalActionExecutor();
+		IActionExecutor<IConstructor> actionExecutor =  new NoActionExecutor();
 		IGTD<IConstructor, IConstructor, ISourceLocation> rp = getRascalParser(getCurrentModuleEnvironment(), location);
 		return (IConstructor) rp.parse(Parser.START_COMMAND, location, command.toCharArray(), actionExecutor, new DefaultNodeFlattener<IConstructor, IConstructor, ISourceLocation>(), new UPTRNodeFactory());
 	}
@@ -940,11 +943,11 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 			__setInterrupt(false);
 			
 			if (!commands.contains("`")) {
-				IActionExecutor<IConstructor> actionExecutor =  new BootRascalActionExecutor();
+				IActionExecutor<IConstructor> actionExecutor =  new NoActionExecutor();
 				return (IConstructor) new RascalRascal().parse(Parser.START_COMMANDS, location, commands.toCharArray(), actionExecutor, new DefaultNodeFlattener<IConstructor, IConstructor, ISourceLocation>(), new UPTRNodeFactory());
 			}
 
-			IActionExecutor<IConstructor> actionExecutor = new BootRascalActionExecutor();
+			IActionExecutor<IConstructor> actionExecutor = new NoActionExecutor();
 			IGTD<IConstructor, IConstructor, ISourceLocation> rp = getRascalParser(getCurrentModuleEnvironment(), location);
 			return (IConstructor) rp.parse(Parser.START_COMMANDS, location, commands.toCharArray(), actionExecutor, new DefaultNodeFlattener<IConstructor, IConstructor, ISourceLocation>(), new UPTRNodeFactory());
 		}
@@ -1036,7 +1039,7 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 		IRascalMonitor old = setMonitor(monitor);
 		interrupt = false;
 		try {
-			eval("import " + string + ";", java.net.URI.create("import:///"));
+			eval("import " + string + ";", URIUtil.rootScheme("import"));
 		}
 		finally {
 			setMonitor(old);
@@ -1292,7 +1295,7 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 		}
 		
 		__setInterrupt(false);
-		IActionExecutor<IConstructor> actionExecutor =  new BootRascalActionExecutor();
+		IActionExecutor<IConstructor> actionExecutor =  new NoActionExecutor();
 
 		IConstructor prefix = (IConstructor) new RascalRascal().parse(Parser.START_PRE_MODULE, location, data, actionExecutor, new DefaultNodeFlattener<IConstructor, IConstructor, ISourceLocation>(), new UPTRNodeFactory());
 		return getBuilder().buildModule((IConstructor) TreeAdapter.getArgs(prefix).get(1));
@@ -1353,7 +1356,7 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 	
 	private IConstructor parseModule(char[] data, URI location, ModuleEnvironment env, boolean declareImportsAndSyntax){
 		__setInterrupt(false);
-		IActionExecutor<IConstructor> actions = new BootRascalActionExecutor();
+		IActionExecutor<IConstructor> actions = new NoActionExecutor();
 
 		startJob("Parsing", 10);
 		event("Pre-parsing: " + location);
@@ -1405,6 +1408,10 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 		}
 		finally {
 			endJob(true);
+		}
+		
+		if (!suspendTriggerListeners.isEmpty()) {
+			result = DebugUpdater.pushDownAttributes(result);
 		}
 		
 		return result;
@@ -1484,7 +1491,7 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 	private Module loadModule(String name, ModuleEnvironment env) throws IOException {
 		try {
 			event("Loading module " + name);
-			IConstructor tree = parseModule(this, java.net.URI.create("rascal://" + name), env);
+			IConstructor tree = parseModule(this, URIUtil.createRascalModule(name), env);
 			ASTBuilder astBuilder = getBuilder();
 			Module moduleAst = astBuilder.buildModule(tree);
 			
@@ -1862,12 +1869,14 @@ public class Evaluator implements IEvaluator<Result<IValue>>, IRascalSuspendTrig
 	
 	@Override
 	public void notifyAboutSuspension(AbstractAST currentAST) {
-		 /* 
-		  * NOTE: book-keeping of the listeners and notification takes place here,
-		  * delegated from the individual AST nodes.
-		  */
-		for (IRascalSuspendTriggerListener listener : suspendTriggerListeners) {
-			listener.suspended(this, currentAST);
+		if (!suspendTriggerListeners.isEmpty() && currentAST.isBreakable()) {
+			 /* 
+			  * NOTE: book-keeping of the listeners and notification takes place here,
+			  * delegated from the individual AST nodes.
+			  */
+			for (IRascalSuspendTriggerListener listener : suspendTriggerListeners) {
+				listener.suspended(this, currentAST);
+			}
 		}
 	}
 

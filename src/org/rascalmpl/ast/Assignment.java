@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -97,28 +98,54 @@ public abstract class Assignment extends AbstractAST {
   
     	
   }
-  public boolean isIfDefined() {
+  public boolean isAppend() {
     return false;
   }
 
-  static public class IfDefined extends Assignment {
-    // Production: sig("IfDefined",[])
+  static public class Append extends Assignment {
+    // Production: sig("Append",[])
   
     
   
-    public IfDefined(IConstructor node ) {
+    public Append(IConstructor node ) {
       super(node);
       
     }
   
     @Override
-    public boolean isIfDefined() { 
+    public boolean isAppend() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitAssignmentIfDefined(this);
+      return visitor.visitAssignmentAppend(this);
+    }
+  
+    	
+  }
+  public boolean isDefault() {
+    return false;
+  }
+
+  static public class Default extends Assignment {
+    // Production: sig("Default",[])
+  
+    
+  
+    public Default(IConstructor node ) {
+      super(node);
+      
+    }
+  
+    @Override
+    public boolean isDefault() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitAssignmentDefault(this);
     }
   
     	
@@ -149,28 +176,28 @@ public abstract class Assignment extends AbstractAST {
   
     	
   }
-  public boolean isProduct() {
+  public boolean isIfDefined() {
     return false;
   }
 
-  static public class Product extends Assignment {
-    // Production: sig("Product",[])
+  static public class IfDefined extends Assignment {
+    // Production: sig("IfDefined",[])
   
     
   
-    public Product(IConstructor node ) {
+    public IfDefined(IConstructor node ) {
       super(node);
       
     }
   
     @Override
-    public boolean isProduct() { 
+    public boolean isIfDefined() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitAssignmentProduct(this);
+      return visitor.visitAssignmentIfDefined(this);
     }
   
     	
@@ -201,28 +228,28 @@ public abstract class Assignment extends AbstractAST {
   
     	
   }
-  public boolean isAppend() {
+  public boolean isProduct() {
     return false;
   }
 
-  static public class Append extends Assignment {
-    // Production: sig("Append",[])
+  static public class Product extends Assignment {
+    // Production: sig("Product",[])
   
     
   
-    public Append(IConstructor node ) {
+    public Product(IConstructor node ) {
       super(node);
       
     }
   
     @Override
-    public boolean isAppend() { 
+    public boolean isProduct() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitAssignmentAppend(this);
+      return visitor.visitAssignmentProduct(this);
     }
   
     	
@@ -249,32 +276,6 @@ public abstract class Assignment extends AbstractAST {
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
       return visitor.visitAssignmentSubtraction(this);
-    }
-  
-    	
-  }
-  public boolean isDefault() {
-    return false;
-  }
-
-  static public class Default extends Assignment {
-    // Production: sig("Default",[])
-  
-    
-  
-    public Default(IConstructor node ) {
-      super(node);
-      
-    }
-  
-    @Override
-    public boolean isDefault() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitAssignmentDefault(this);
     }
   
     	

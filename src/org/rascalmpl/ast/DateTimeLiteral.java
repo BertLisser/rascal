@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -35,18 +36,18 @@ public abstract class DateTimeLiteral extends AbstractAST {
   public org.rascalmpl.ast.DateAndTime getDateAndTime() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasTime() {
-    return false;
-  }
-
-  public org.rascalmpl.ast.JustTime getTime() {
-    throw new UnsupportedOperationException();
-  }
   public boolean hasDate() {
     return false;
   }
 
   public org.rascalmpl.ast.JustDate getDate() {
+    throw new UnsupportedOperationException();
+  }
+  public boolean hasTime() {
+    return false;
+  }
+
+  public org.rascalmpl.ast.JustTime getTime() {
     throw new UnsupportedOperationException();
   }
 
@@ -129,43 +130,6 @@ public abstract class DateTimeLiteral extends AbstractAST {
       return true;
     }	
   }
-  public boolean isTimeLiteral() {
-    return false;
-  }
-
-  static public class TimeLiteral extends DateTimeLiteral {
-    // Production: sig("TimeLiteral",[arg("org.rascalmpl.ast.JustTime","time")])
-  
-    
-    private final org.rascalmpl.ast.JustTime time;
-  
-    public TimeLiteral(IConstructor node , org.rascalmpl.ast.JustTime time) {
-      super(node);
-      
-      this.time = time;
-    }
-  
-    @Override
-    public boolean isTimeLiteral() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitDateTimeLiteralTimeLiteral(this);
-    }
-  
-    
-    @Override
-    public org.rascalmpl.ast.JustTime getTime() {
-      return this.time;
-    }
-  
-    @Override
-    public boolean hasTime() {
-      return true;
-    }	
-  }
   public boolean isDateLiteral() {
     return false;
   }
@@ -200,6 +164,43 @@ public abstract class DateTimeLiteral extends AbstractAST {
   
     @Override
     public boolean hasDate() {
+      return true;
+    }	
+  }
+  public boolean isTimeLiteral() {
+    return false;
+  }
+
+  static public class TimeLiteral extends DateTimeLiteral {
+    // Production: sig("TimeLiteral",[arg("org.rascalmpl.ast.JustTime","time")])
+  
+    
+    private final org.rascalmpl.ast.JustTime time;
+  
+    public TimeLiteral(IConstructor node , org.rascalmpl.ast.JustTime time) {
+      super(node);
+      
+      this.time = time;
+    }
+  
+    @Override
+    public boolean isTimeLiteral() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitDateTimeLiteralTimeLiteral(this);
+    }
+  
+    
+    @Override
+    public org.rascalmpl.ast.JustTime getTime() {
+      return this.time;
+    }
+  
+    @Override
+    public boolean hasTime() {
       return true;
     }	
   }

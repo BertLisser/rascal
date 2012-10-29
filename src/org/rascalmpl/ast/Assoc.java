@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -71,54 +72,28 @@ public abstract class Assoc extends AbstractAST {
   
 
   
-  public boolean isRight() {
+  public boolean isAssociative() {
     return false;
   }
 
-  static public class Right extends Assoc {
-    // Production: sig("Right",[])
+  static public class Associative extends Assoc {
+    // Production: sig("Associative",[])
   
     
   
-    public Right(IConstructor node ) {
+    public Associative(IConstructor node ) {
       super(node);
       
     }
   
     @Override
-    public boolean isRight() { 
+    public boolean isAssociative() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitAssocRight(this);
-    }
-  
-    	
-  }
-  public boolean isNonAssociative() {
-    return false;
-  }
-
-  static public class NonAssociative extends Assoc {
-    // Production: sig("NonAssociative",[])
-  
-    
-  
-    public NonAssociative(IConstructor node ) {
-      super(node);
-      
-    }
-  
-    @Override
-    public boolean isNonAssociative() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitAssocNonAssociative(this);
+      return visitor.visitAssocAssociative(this);
     }
   
     	
@@ -149,28 +124,54 @@ public abstract class Assoc extends AbstractAST {
   
     	
   }
-  public boolean isAssociative() {
+  public boolean isNonAssociative() {
     return false;
   }
 
-  static public class Associative extends Assoc {
-    // Production: sig("Associative",[])
+  static public class NonAssociative extends Assoc {
+    // Production: sig("NonAssociative",[])
   
     
   
-    public Associative(IConstructor node ) {
+    public NonAssociative(IConstructor node ) {
       super(node);
       
     }
   
     @Override
-    public boolean isAssociative() { 
+    public boolean isNonAssociative() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitAssocAssociative(this);
+      return visitor.visitAssocNonAssociative(this);
+    }
+  
+    	
+  }
+  public boolean isRight() {
+    return false;
+  }
+
+  static public class Right extends Assoc {
+    // Production: sig("Right",[])
+  
+    
+  
+    public Right(IConstructor node ) {
+      super(node);
+      
+    }
+  
+    @Override
+    public boolean isRight() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitAssocRight(this);
     }
   
     	

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -28,11 +29,18 @@ public abstract class Type extends AbstractAST {
   }
 
   
-  public boolean hasSymbol() {
+  public boolean hasBasic() {
     return false;
   }
 
-  public org.rascalmpl.ast.Sym getSymbol() {
+  public org.rascalmpl.ast.BasicType getBasic() {
+    throw new UnsupportedOperationException();
+  }
+  public boolean hasSelector() {
+    return false;
+  }
+
+  public org.rascalmpl.ast.DataTypeSelector getSelector() {
     throw new UnsupportedOperationException();
   }
   public boolean hasFunction() {
@@ -49,25 +57,11 @@ public abstract class Type extends AbstractAST {
   public org.rascalmpl.ast.StructuredType getStructured() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasUser() {
+  public boolean hasSymbol() {
     return false;
   }
 
-  public org.rascalmpl.ast.UserType getUser() {
-    throw new UnsupportedOperationException();
-  }
-  public boolean hasTypeVar() {
-    return false;
-  }
-
-  public org.rascalmpl.ast.TypeVar getTypeVar() {
-    throw new UnsupportedOperationException();
-  }
-  public boolean hasSelector() {
-    return false;
-  }
-
-  public org.rascalmpl.ast.DataTypeSelector getSelector() {
+  public org.rascalmpl.ast.Sym getSymbol() {
     throw new UnsupportedOperationException();
   }
   public boolean hasType() {
@@ -77,11 +71,18 @@ public abstract class Type extends AbstractAST {
   public org.rascalmpl.ast.Type getType() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasBasic() {
+  public boolean hasTypeVar() {
     return false;
   }
 
-  public org.rascalmpl.ast.BasicType getBasic() {
+  public org.rascalmpl.ast.TypeVar getTypeVar() {
+    throw new UnsupportedOperationException();
+  }
+  public boolean hasUser() {
+    return false;
+  }
+
+  public org.rascalmpl.ast.UserType getUser() {
     throw new UnsupportedOperationException();
   }
 
@@ -164,117 +165,6 @@ public abstract class Type extends AbstractAST {
       return true;
     }	
   }
-  public boolean isFunction() {
-    return false;
-  }
-
-  static public class Function extends Type {
-    // Production: sig("Function",[arg("org.rascalmpl.ast.FunctionType","function")])
-  
-    
-    private final org.rascalmpl.ast.FunctionType function;
-  
-    public Function(IConstructor node , org.rascalmpl.ast.FunctionType function) {
-      super(node);
-      
-      this.function = function;
-    }
-  
-    @Override
-    public boolean isFunction() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitTypeFunction(this);
-    }
-  
-    
-    @Override
-    public org.rascalmpl.ast.FunctionType getFunction() {
-      return this.function;
-    }
-  
-    @Override
-    public boolean hasFunction() {
-      return true;
-    }	
-  }
-  public boolean isStructured() {
-    return false;
-  }
-
-  static public class Structured extends Type {
-    // Production: sig("Structured",[arg("org.rascalmpl.ast.StructuredType","structured")])
-  
-    
-    private final org.rascalmpl.ast.StructuredType structured;
-  
-    public Structured(IConstructor node , org.rascalmpl.ast.StructuredType structured) {
-      super(node);
-      
-      this.structured = structured;
-    }
-  
-    @Override
-    public boolean isStructured() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitTypeStructured(this);
-    }
-  
-    
-    @Override
-    public org.rascalmpl.ast.StructuredType getStructured() {
-      return this.structured;
-    }
-  
-    @Override
-    public boolean hasStructured() {
-      return true;
-    }	
-  }
-  public boolean isVariable() {
-    return false;
-  }
-
-  static public class Variable extends Type {
-    // Production: sig("Variable",[arg("org.rascalmpl.ast.TypeVar","typeVar")])
-  
-    
-    private final org.rascalmpl.ast.TypeVar typeVar;
-  
-    public Variable(IConstructor node , org.rascalmpl.ast.TypeVar typeVar) {
-      super(node);
-      
-      this.typeVar = typeVar;
-    }
-  
-    @Override
-    public boolean isVariable() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitTypeVariable(this);
-    }
-  
-    
-    @Override
-    public org.rascalmpl.ast.TypeVar getTypeVar() {
-      return this.typeVar;
-    }
-  
-    @Override
-    public boolean hasTypeVar() {
-      return true;
-    }	
-  }
   public boolean isBracket() {
     return false;
   }
@@ -312,6 +202,43 @@ public abstract class Type extends AbstractAST {
       return true;
     }	
   }
+  public boolean isFunction() {
+    return false;
+  }
+
+  static public class Function extends Type {
+    // Production: sig("Function",[arg("org.rascalmpl.ast.FunctionType","function")])
+  
+    
+    private final org.rascalmpl.ast.FunctionType function;
+  
+    public Function(IConstructor node , org.rascalmpl.ast.FunctionType function) {
+      super(node);
+      
+      this.function = function;
+    }
+  
+    @Override
+    public boolean isFunction() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitTypeFunction(this);
+    }
+  
+    
+    @Override
+    public org.rascalmpl.ast.FunctionType getFunction() {
+      return this.function;
+    }
+  
+    @Override
+    public boolean hasFunction() {
+      return true;
+    }	
+  }
   public boolean isSelector() {
     return false;
   }
@@ -346,6 +273,43 @@ public abstract class Type extends AbstractAST {
   
     @Override
     public boolean hasSelector() {
+      return true;
+    }	
+  }
+  public boolean isStructured() {
+    return false;
+  }
+
+  static public class Structured extends Type {
+    // Production: sig("Structured",[arg("org.rascalmpl.ast.StructuredType","structured")])
+  
+    
+    private final org.rascalmpl.ast.StructuredType structured;
+  
+    public Structured(IConstructor node , org.rascalmpl.ast.StructuredType structured) {
+      super(node);
+      
+      this.structured = structured;
+    }
+  
+    @Override
+    public boolean isStructured() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitTypeStructured(this);
+    }
+  
+    
+    @Override
+    public org.rascalmpl.ast.StructuredType getStructured() {
+      return this.structured;
+    }
+  
+    @Override
+    public boolean hasStructured() {
       return true;
     }	
   }
@@ -420,6 +384,43 @@ public abstract class Type extends AbstractAST {
   
     @Override
     public boolean hasUser() {
+      return true;
+    }	
+  }
+  public boolean isVariable() {
+    return false;
+  }
+
+  static public class Variable extends Type {
+    // Production: sig("Variable",[arg("org.rascalmpl.ast.TypeVar","typeVar")])
+  
+    
+    private final org.rascalmpl.ast.TypeVar typeVar;
+  
+    public Variable(IConstructor node , org.rascalmpl.ast.TypeVar typeVar) {
+      super(node);
+      
+      this.typeVar = typeVar;
+    }
+  
+    @Override
+    public boolean isVariable() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitTypeVariable(this);
+    }
+  
+    
+    @Override
+    public org.rascalmpl.ast.TypeVar getTypeVar() {
+      return this.typeVar;
+    }
+  
+    @Override
+    public boolean hasTypeVar() {
       return true;
     }	
   }

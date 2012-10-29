@@ -29,6 +29,15 @@ Append a textual representation of some values to an existing or a newly created
 public java void appendToFile(loc file, value V...)
 throws UnsupportedScheme(loc file), PathNotFound(loc file), IO(str msg);
 
+@doc{returns all available character sets}
+@javaClass{org.rascalmpl.library.Prelude}
+public java set[str] charsets();
+
+@doc{returns whether this charset can be used for encoding (use with writeFile)}
+@javaClass{org.rascalmpl.library.Prelude}
+public java set[str] canEncode(str charset);
+
+
 @doc{
 Synopsis: Print a value and return true.
 
@@ -379,6 +388,11 @@ The second version of `readFile` with a string argument is __deprecated__.
 public java str readFile(loc file)
 throws UnsupportedScheme(loc file), PathNotFound(loc file), IO(str msg);
 
+@javaClass{org.rascalmpl.library.Prelude}
+@reflect{Uses URI Resolver Registry}
+public java str readFileEnc(loc file, str charset)
+throws UnsupportedScheme(loc file), PathNotFound(loc file), IO(str msg);
+
 @deprecated{Use @see str readFile(loc file)}
 @javaClass{org.rascalmpl.library.Prelude}
 public java list[str] readFile(str filename)
@@ -405,6 +419,11 @@ Also see [readFile].
 public java list[str] readFileLines(loc file)
 throws UnsupportedScheme(loc file), PathNotFound(loc file), IO(str msg);
 
+@javaClass{org.rascalmpl.library.Prelude}
+@reflect{Uses URI Resolver Registry}
+public java list[str] readFileLinesEnc(loc file, str charset)
+throws UnsupportedScheme(loc file), PathNotFound(loc file), IO(str msg);
+
 @doc{Write a textual representation of some values to a file
    * If a value is a simple string, the quotes are removed and the contents are de-escaped.
    * If a value has a non-terminal type, the parse tree is unparsed to produce a value.
@@ -426,6 +445,11 @@ Write a textual representation of some values to a file:
 public java void writeFile(loc file, value V...)
 throws UnsupportedScheme(loc file), PathNotFound(loc file), IO(str msg);
 
+@javaClass{org.rascalmpl.library.Prelude}
+@reflect{Uses URI Resolver Registry}
+public java void writeFileEnc(loc file, str charset, value V...)
+throws UnsupportedScheme(loc file), PathNotFound(loc file), IO(str msg);
+
 @doc{
 Synopsis: Changes the last modification date of a file.
 }
@@ -434,3 +458,14 @@ throws UnsupportedScheme(loc file), PathNotFound(loc file), IO(str msg){
   appendToFile(file);
 }
 
+@doc{
+Synopsis: Read the contents of a location and return its MD5 hash.
+
+Description:
+MD5 hash the contents of a file location.
+}
+
+@javaClass{org.rascalmpl.library.Prelude}
+@reflect{Uses URI Resolver Registry}
+public java str md5HashFile(loc file)
+throws UnsupportedScheme(loc file), PathNotFound(loc file), IO(str msg);

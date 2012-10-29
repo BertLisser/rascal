@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -78,43 +79,6 @@ public abstract class Parameters extends AbstractAST {
   
 
   
-  public boolean isVarArgs() {
-    return false;
-  }
-
-  static public class VarArgs extends Parameters {
-    // Production: sig("VarArgs",[arg("org.rascalmpl.ast.Formals","formals")])
-  
-    
-    private final org.rascalmpl.ast.Formals formals;
-  
-    public VarArgs(IConstructor node , org.rascalmpl.ast.Formals formals) {
-      super(node);
-      
-      this.formals = formals;
-    }
-  
-    @Override
-    public boolean isVarArgs() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitParametersVarArgs(this);
-    }
-  
-    
-    @Override
-    public org.rascalmpl.ast.Formals getFormals() {
-      return this.formals;
-    }
-  
-    @Override
-    public boolean hasFormals() {
-      return true;
-    }	
-  }
   public boolean isDefault() {
     return false;
   }
@@ -139,6 +103,43 @@ public abstract class Parameters extends AbstractAST {
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
       return visitor.visitParametersDefault(this);
+    }
+  
+    
+    @Override
+    public org.rascalmpl.ast.Formals getFormals() {
+      return this.formals;
+    }
+  
+    @Override
+    public boolean hasFormals() {
+      return true;
+    }	
+  }
+  public boolean isVarArgs() {
+    return false;
+  }
+
+  static public class VarArgs extends Parameters {
+    // Production: sig("VarArgs",[arg("org.rascalmpl.ast.Formals","formals")])
+  
+    
+    private final org.rascalmpl.ast.Formals formals;
+  
+    public VarArgs(IConstructor node , org.rascalmpl.ast.Formals formals) {
+      super(node);
+      
+      this.formals = formals;
+    }
+  
+    @Override
+    public boolean isVarArgs() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitParametersVarArgs(this);
     }
   
     

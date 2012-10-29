@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -71,54 +72,28 @@ public abstract class Strategy extends AbstractAST {
   
 
   
-  public boolean isOutermost() {
+  public boolean isBottomUp() {
     return false;
   }
 
-  static public class Outermost extends Strategy {
-    // Production: sig("Outermost",[])
+  static public class BottomUp extends Strategy {
+    // Production: sig("BottomUp",[])
   
     
   
-    public Outermost(IConstructor node ) {
+    public BottomUp(IConstructor node ) {
       super(node);
       
     }
   
     @Override
-    public boolean isOutermost() { 
+    public boolean isBottomUp() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitStrategyOutermost(this);
-    }
-  
-    	
-  }
-  public boolean isTopDownBreak() {
-    return false;
-  }
-
-  static public class TopDownBreak extends Strategy {
-    // Production: sig("TopDownBreak",[])
-  
-    
-  
-    public TopDownBreak(IConstructor node ) {
-      super(node);
-      
-    }
-  
-    @Override
-    public boolean isTopDownBreak() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitStrategyTopDownBreak(this);
+      return visitor.visitStrategyBottomUp(this);
     }
   
     	
@@ -175,28 +150,28 @@ public abstract class Strategy extends AbstractAST {
   
     	
   }
-  public boolean isBottomUp() {
+  public boolean isOutermost() {
     return false;
   }
 
-  static public class BottomUp extends Strategy {
-    // Production: sig("BottomUp",[])
+  static public class Outermost extends Strategy {
+    // Production: sig("Outermost",[])
   
     
   
-    public BottomUp(IConstructor node ) {
+    public Outermost(IConstructor node ) {
       super(node);
       
     }
   
     @Override
-    public boolean isBottomUp() { 
+    public boolean isOutermost() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitStrategyBottomUp(this);
+      return visitor.visitStrategyOutermost(this);
     }
   
     	
@@ -223,6 +198,32 @@ public abstract class Strategy extends AbstractAST {
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
       return visitor.visitStrategyTopDown(this);
+    }
+  
+    	
+  }
+  public boolean isTopDownBreak() {
+    return false;
+  }
+
+  static public class TopDownBreak extends Strategy {
+    // Production: sig("TopDownBreak",[])
+  
+    
+  
+    public TopDownBreak(IConstructor node ) {
+      super(node);
+      
+    }
+  
+    @Override
+    public boolean isTopDownBreak() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitStrategyTopDownBreak(this);
     }
   
     	

@@ -57,7 +57,7 @@ public class JSonWriter implements IValueTextWriter {
 
 	public void write(IValue value, java.io.Writer stream) throws IOException {
 		try {
-			System.err.println("JSonWriter:write:" + value);
+			if (debug) System.err.println("JSonWriter:write:" + value);
 			value.accept(new Writer(stream));
 			stream.close();
 		} catch (VisitorException e) {

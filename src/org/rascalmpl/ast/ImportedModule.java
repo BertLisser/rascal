@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009-2011 CWI
+ * Copyright (c) 2009-2012 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,14 +11,15 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Michael Steindorfer - Michael.Steindorfer@cwi.nl - CWI
  *******************************************************************************/
 package org.rascalmpl.ast;
 
 
 import org.eclipse.imp.pdb.facts.IConstructor;
-import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.eclipse.imp.pdb.facts.IValue;
 import org.rascalmpl.interpreter.IEvaluator;
+import org.rascalmpl.interpreter.asserts.Ambiguous;
 import org.rascalmpl.interpreter.env.Environment;
 import org.rascalmpl.interpreter.result.Result;
 
@@ -28,11 +29,11 @@ public abstract class ImportedModule extends AbstractAST {
   }
 
   
-  public boolean hasRenamings() {
+  public boolean hasActuals() {
     return false;
   }
 
-  public org.rascalmpl.ast.Renamings getRenamings() {
+  public org.rascalmpl.ast.ModuleActuals getActuals() {
     throw new UnsupportedOperationException();
   }
   public boolean hasName() {
@@ -42,11 +43,11 @@ public abstract class ImportedModule extends AbstractAST {
   public org.rascalmpl.ast.QualifiedName getName() {
     throw new UnsupportedOperationException();
   }
-  public boolean hasActuals() {
+  public boolean hasRenamings() {
     return false;
   }
 
-  public org.rascalmpl.ast.ModuleActuals getActuals() {
+  public org.rascalmpl.ast.Renamings getRenamings() {
     throw new UnsupportedOperationException();
   }
 
@@ -92,32 +93,32 @@ public abstract class ImportedModule extends AbstractAST {
   
 
   
-  public boolean isRenamings() {
+  public boolean isActuals() {
     return false;
   }
 
-  static public class Renamings extends ImportedModule {
-    // Production: sig("Renamings",[arg("org.rascalmpl.ast.QualifiedName","name"),arg("org.rascalmpl.ast.Renamings","renamings")])
+  static public class Actuals extends ImportedModule {
+    // Production: sig("Actuals",[arg("org.rascalmpl.ast.QualifiedName","name"),arg("org.rascalmpl.ast.ModuleActuals","actuals")])
   
     
     private final org.rascalmpl.ast.QualifiedName name;
-    private final org.rascalmpl.ast.Renamings renamings;
+    private final org.rascalmpl.ast.ModuleActuals actuals;
   
-    public Renamings(IConstructor node , org.rascalmpl.ast.QualifiedName name,  org.rascalmpl.ast.Renamings renamings) {
+    public Actuals(IConstructor node , org.rascalmpl.ast.QualifiedName name,  org.rascalmpl.ast.ModuleActuals actuals) {
       super(node);
       
       this.name = name;
-      this.renamings = renamings;
+      this.actuals = actuals;
     }
   
     @Override
-    public boolean isRenamings() { 
+    public boolean isActuals() { 
       return true; 
     }
   
     @Override
     public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitImportedModuleRenamings(this);
+      return visitor.visitImportedModuleActuals(this);
     }
   
     
@@ -131,12 +132,12 @@ public abstract class ImportedModule extends AbstractAST {
       return true;
     }
     @Override
-    public org.rascalmpl.ast.Renamings getRenamings() {
-      return this.renamings;
+    public org.rascalmpl.ast.ModuleActuals getActuals() {
+      return this.actuals;
     }
   
     @Override
-    public boolean hasRenamings() {
+    public boolean hasActuals() {
       return true;
     }	
   }
@@ -199,54 +200,6 @@ public abstract class ImportedModule extends AbstractAST {
       return true;
     }	
   }
-  public boolean isActuals() {
-    return false;
-  }
-
-  static public class Actuals extends ImportedModule {
-    // Production: sig("Actuals",[arg("org.rascalmpl.ast.QualifiedName","name"),arg("org.rascalmpl.ast.ModuleActuals","actuals")])
-  
-    
-    private final org.rascalmpl.ast.QualifiedName name;
-    private final org.rascalmpl.ast.ModuleActuals actuals;
-  
-    public Actuals(IConstructor node , org.rascalmpl.ast.QualifiedName name,  org.rascalmpl.ast.ModuleActuals actuals) {
-      super(node);
-      
-      this.name = name;
-      this.actuals = actuals;
-    }
-  
-    @Override
-    public boolean isActuals() { 
-      return true; 
-    }
-  
-    @Override
-    public <T> T accept(IASTVisitor<T> visitor) {
-      return visitor.visitImportedModuleActuals(this);
-    }
-  
-    
-    @Override
-    public org.rascalmpl.ast.QualifiedName getName() {
-      return this.name;
-    }
-  
-    @Override
-    public boolean hasName() {
-      return true;
-    }
-    @Override
-    public org.rascalmpl.ast.ModuleActuals getActuals() {
-      return this.actuals;
-    }
-  
-    @Override
-    public boolean hasActuals() {
-      return true;
-    }	
-  }
   public boolean isDefault() {
     return false;
   }
@@ -281,6 +234,54 @@ public abstract class ImportedModule extends AbstractAST {
   
     @Override
     public boolean hasName() {
+      return true;
+    }	
+  }
+  public boolean isRenamings() {
+    return false;
+  }
+
+  static public class Renamings extends ImportedModule {
+    // Production: sig("Renamings",[arg("org.rascalmpl.ast.QualifiedName","name"),arg("org.rascalmpl.ast.Renamings","renamings")])
+  
+    
+    private final org.rascalmpl.ast.QualifiedName name;
+    private final org.rascalmpl.ast.Renamings renamings;
+  
+    public Renamings(IConstructor node , org.rascalmpl.ast.QualifiedName name,  org.rascalmpl.ast.Renamings renamings) {
+      super(node);
+      
+      this.name = name;
+      this.renamings = renamings;
+    }
+  
+    @Override
+    public boolean isRenamings() { 
+      return true; 
+    }
+  
+    @Override
+    public <T> T accept(IASTVisitor<T> visitor) {
+      return visitor.visitImportedModuleRenamings(this);
+    }
+  
+    
+    @Override
+    public org.rascalmpl.ast.QualifiedName getName() {
+      return this.name;
+    }
+  
+    @Override
+    public boolean hasName() {
+      return true;
+    }
+    @Override
+    public org.rascalmpl.ast.Renamings getRenamings() {
+      return this.renamings;
+    }
+  
+    @Override
+    public boolean hasRenamings() {
       return true;
     }	
   }

@@ -13,7 +13,6 @@
 *******************************************************************************/
 package org.rascalmpl.library.util;
 
-import java.io.IOException;
 import java.net.URI;
 
 import org.eclipse.imp.pdb.facts.IConstructor;
@@ -25,7 +24,6 @@ import org.rascalmpl.interpreter.IEvaluator;
 import org.rascalmpl.interpreter.IEvaluatorContext;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.utils.RuntimeExceptionFactory;
-import org.rascalmpl.values.uptr.TreeAdapter;
 
 public class Reflective {
 
@@ -33,17 +31,6 @@ public class Reflective {
 		super();
 	}
 
-	public IValue getModuleParseTree(IString modulePath, IEvaluatorContext ctx) {
-		try {
-			IConstructor tree = null;
-			URI uri = ctx.getEvaluator().getRascalResolver().resolve(URI.create("rascal://" + modulePath.getValue()));
-			tree = ctx.getEvaluator().parseModule(ctx.getEvaluator(), uri, new ModuleEnvironment("___getModuleParseTree___", ctx.getHeap()));
-			return TreeAdapter.getArgs(tree).get(1);
-		} catch (IOException e) {
-			throw RuntimeExceptionFactory.moduleNotFound(modulePath, null, null);
-		}
-	}
-	
 	public IConstructor getModuleGrammar(ISourceLocation loc, IEvaluatorContext ctx) {
 		URI uri = loc.getURI();
 		IEvaluator<?> evaluator = ctx.getEvaluator();
@@ -63,5 +50,11 @@ public class Reflective {
 	public IValue parseModule(IString str, ISourceLocation loc, IEvaluatorContext ctx) {
 		IEvaluator<?> evaluator = ctx.getEvaluator();
 		return evaluator.parseModuleWithoutIncludingExtends(evaluator.getMonitor(), str.getValue().toCharArray(), loc.getURI(), new ModuleEnvironment("___parseModule___", ctx.getHeap()));
+	}
+
+	public IValue getModuleLocation(IString modulePath, IEvaluatorContext ctx) {
+		URI uri = ctx.getEvaluator().getRascalResolver().resolve(URI.create("rascal://" + modulePath.getValue()));
+		if (uri == null) throw RuntimeExceptionFactory.moduleNotFound(modulePath, ctx.getCurrentAST(), null);
+		return ctx.getValueFactory().sourceLocation(uri);
 	}
 }

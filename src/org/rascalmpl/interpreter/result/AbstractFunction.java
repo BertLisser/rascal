@@ -13,6 +13,7 @@
  *   * Paul Klint - Paul.Klint@cwi.nl - CWI
  *   * Mark Hills - Mark.Hills@cwi.nl (CWI)
  *   * Arnold Lankamp - Arnold.Lankamp@cwi.nl
+ *   * Anastasia Izmaylova - A.Izmaylova@cwi.nl - CWI
 *******************************************************************************/
 package org.rascalmpl.interpreter.result;
 
@@ -362,15 +363,42 @@ abstract public class AbstractFunction extends Result<IValue> implements IExtern
 	}
 	
 	@Override
+	public <U extends IValue, V extends IValue> Result<U> add(Result<V> that) {
+		return that.addFunctionNonDeterministic(this);
+	}
+	
+	@Override
+	public OverloadedFunction addFunctionNonDeterministic(AbstractFunction that) {
+		return (new OverloadedFunction(this)).add(that);
+	}
+
+	@Override
+	public OverloadedFunction addFunctionNonDeterministic(OverloadedFunction that) {
+		return (new OverloadedFunction(this)).join(that);
+	}
+
+	@Override
+	public ComposedFunctionResult addFunctionNonDeterministic(ComposedFunctionResult that) {
+		return new ComposedFunctionResult.NonDeterministic(that, this, ctx);
+	}
+	
+	@Override
 	public <U extends IValue, V extends IValue> Result<U> compose(Result<V> right) {
 		return right.composeFunction(this);
 	}
 	
 	@Override
-	public AbstractFunction composeFunction(AbstractFunction that) {
-		if (!getTypeFactory().tupleType(getReturnType()).isSubtypeOf(that.getFunctionType().getArgumentTypes())) {
-			undefinedError("composition");
-		}
+	public ComposedFunctionResult composeFunction(AbstractFunction that) {
+		return new ComposedFunctionResult(that, this, ctx);
+	}
+	
+	@Override
+	public ComposedFunctionResult composeFunction(OverloadedFunction that) {
+		return new ComposedFunctionResult(that, this, ctx);
+	}
+	
+	@Override
+	public ComposedFunctionResult composeFunction(ComposedFunctionResult that) {
 		return new ComposedFunctionResult(that, this, ctx);
 	}
 	
