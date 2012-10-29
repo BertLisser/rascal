@@ -208,7 +208,7 @@ syntax Expression
 	| \map            : "(" {Mapping[Expression] ","}* mappings ")" 
 	| \it             : [A-Z a-z _] !<< "it" !>> [A-Z a-z _]
 	| qualifiedName  : QualifiedName qualifiedName 
-	| subscript    : Expression expression!transitiveClosure!transitiveReflexiveClosure "[" {Expression ","}+ subscripts "]" 
+	| subscript    : Expression expression!transitiveClosure!transitiveReflexiveClosure!isDefined "[" {Expression ","}+ subscripts "]" 
 	| fieldAccess  : Expression expression "." Name field 
 	| fieldUpdate  : Expression expression "[" Name key "=" Expression replacement "]" 
 	| fieldProject : Expression expression!transitiveClosure!transitiveReflexiveClosure "\<" {Field ","}+ fields "\>" 
@@ -229,7 +229,7 @@ syntax Expression
 	       | remainder: Expression lhs "%" Expression rhs
 		   | division: Expression lhs "/" Expression rhs 
 	     )
-	> left intersection: Expression lhs "&" Expression rhs 
+	> left intersection: Expression lhs "&" !>> "&" Expression rhs 
 	> left ( addition   : Expression lhs "+" Expression!noMatch!match rhs  
 		   | subtraction: Expression!transitiveClosure!transitiveReflexiveClosure lhs "-" Expression rhs
 		   | appendAfter: Expression lhs "\<\<" !>> "=" Expression rhs
@@ -567,8 +567,8 @@ syntax Statement
 	| @breakable globalDirective: "global" Type type {QualifiedName ","}+ names ";" 
 	| @breakable assignment: Assignable assignable Assignment operator Statement!functionDeclaration!variableDeclaration statement
 	| non-assoc  ( 
-		          @breakable \return    : "return" Statement statement  
-		        | @breakable \throw     : "throw" Statement statement 
+		          @breakable \return    : "return" Statement!functionDeclaration!variableDeclaration statement  
+		        | @breakable \throw     : "throw" Statement!functionDeclaration!variableDeclaration statement 
 		        | @breakable \insert    : "insert" DataTarget dataTarget Statement!functionDeclaration!variableDeclaration statement 
 		        | @breakable \append    : "append" DataTarget dataTarget Statement!functionDeclaration!variableDeclaration statement 
 	            )

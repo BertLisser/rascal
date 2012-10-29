@@ -237,14 +237,19 @@ public class MapResult extends ElementResult<IMap> {
 		// Note reversed args
 		IMap left = that.getValue();
 		IMap right = this.getValue();
-		// TODO: this is not right; they can be disjoint
+		
 		if (left.isEqual(right)) {
 			return makeIntegerResult(0);
 		}
-		if (left.isSubMap(left)) {
+		if (left.isSubMap(right)) {
 			return makeIntegerResult(-1);
 		}
-		return makeIntegerResult(1);
+		if (right.isSubMap(left)) {
+			return makeIntegerResult(1);
+		}
+		
+		 // so they are incomparable
+		return makeIntegerResult(0);
 	}
 	
 	@Override
